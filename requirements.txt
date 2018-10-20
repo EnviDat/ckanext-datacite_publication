@@ -1,0 +1,1 @@
+-e git://github.com/eawag-rdm/doigenerator.git#egg=doigenerator
