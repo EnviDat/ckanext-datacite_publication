@@ -1,0 +1,15 @@
+{% ckan_extends %}
+
+
+{% block content_action %}
+  
+  {{ super() }}
+  
+  {% if h.check_access('package_update', {'id':pkg.id }) %}
+      <a class="btn btn-success" href="{{ h.url_for('publish_package', package_id=pkg.name)}}" >
+      	<i class="fa fa-icon fa-cloud-upload"></i>
+      	{{ _('Publish') }}
+      </a>
+  {% endif %}
+  
+{% endblock %}
