@@ -27,11 +27,13 @@ class DatacitePublicationController(toolkit.BaseController):
             )
         except toolkit.ObjectNotFound:
             toolkit.abort(404, 'Dataset not found')
+        except toolkit.NotAuthorized:
+            toolkit.abort(403, 'Not authorized')
 
         return published_package
 
     def publish_resource(self, resource_id):
-        '''Start publication process for a dataset.
+        '''Start publication process for a resource.
         '''
 
         context = {
@@ -50,5 +52,7 @@ class DatacitePublicationController(toolkit.BaseController):
             )
         except toolkit.ObjectNotFound:
             toolkit.abort(404, 'Dataset not found')
+        except toolkit.NotAuthorized:
+            toolkit.abort(403, 'Not authorized')
 
         return published_resource
