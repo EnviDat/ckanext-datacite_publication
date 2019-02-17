@@ -61,6 +61,7 @@ def _publish(data_dict, context, type='package'):
     if doi:
        # update dataset
        dataset_dict['doi'] = doi
+       dataset_dict['private'] = False
        dataset_dict['publication_state'] = 'reserved'
        toolkit.get_action('package_update')(data_dict=dataset_dict)
        return {'success': True, 'error': None}
