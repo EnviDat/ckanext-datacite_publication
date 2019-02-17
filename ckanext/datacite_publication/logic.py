@@ -37,8 +37,6 @@ def _publish(data_dict, context, type='package'):
         raise toolkit.ValidationError({'id': 'missing id'})
     
     dataset_dict = toolkit.get_action('package_show')(context, {'id': id_or_name})
-    print("***** DATASET DICT **********")
-    print(dataset_dict)
     
     # Check authorization
     package_id = dataset_dict.get('package_id', dataset_dict.get('id', id_or_name))
@@ -53,8 +51,19 @@ def _publish(data_dict, context, type='package'):
     
     # mint doi mint_doi(self, ckan_id, ckan_user, prefix_id = None, suffix = None, entity='package')
     doi_index = DataciteIndexDOI()
-    doi, error = doi_index.mint_doi( ckan_id=package_id, ckan_user=ckan_user)
-    return("10.23456/test-doi")
+    doi, error = doi_index.mint_doi( ckan_id=package_id, ckan_user=ckan_user, ckan_name=dataset_dict.get('name', "None"))
+    
+    if doi:
+       # update dataset
+       dataset_dict['doi'] = doi
+       dataset_dict['publication_state'] = 'reserved'
+       toolkit.get_action('package_update')(data_dict=dataset_dict)
+       return {'success': True, 'error': None}
+    else:
+       return {'success': False, 'error': error}
+        
+    
+    return
 
 def _get_username_from_context(context):
     auth_user_obj = context.get('auth_user_obj', None)

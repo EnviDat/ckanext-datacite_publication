@@ -1,5 +1,6 @@
 import sqlalchemy
 import sys
+import traceback
 
 from ckantoolkit import config
 import ckan.plugins as plugins
@@ -72,7 +73,7 @@ class DataciteIndexDOI(plugins.SingletonPlugin):
             return True
 
 
-    def mint_doi(self, ckan_id, ckan_user, prefix = None, suffix = None, entity='package'):
+    def mint_doi(self, ckan_id, ckan_user, ckan_name, prefix = None, suffix = None, entity='package'):
     
         doi_realisation = self.meta.tables['doi_realisation']
 
@@ -92,17 +93,23 @@ class DataciteIndexDOI(plugins.SingletonPlugin):
         # check if ckan_id already registered
 
         # insert row
-        mint_insert = doi_realisation.insert().values(prefix_id=prefix_id, ckan_id=ckan_id , ckan_name="todo", ckan_user=ckan_user, site_id=self.site_id, metadata = "pending")
+        try:
+            mint_insert = doi_realisation.insert().values(prefix_id=prefix_id, ckan_id=ckan_id , ckan_name=ckan_name, ckan_user=ckan_user, site_id=self.site_id, metadata = "pending")
         
-        log.debug(mint_insert.compile().params)
-        result = self.con.execute(mint_insert)
-        inserted_primary_key = result.inserted_primary_key[0]
+            log.debug(mint_insert.compile().params)
+            result = self.con.execute(mint_insert)
+            inserted_primary_key = result.inserted_primary_key[0]
                 
-        clause = sqlalchemy.select([doi_realisation.c.prefix_id,
+            clause = sqlalchemy.select([doi_realisation.c.prefix_id,
                                     doi_realisation.c.suffix_id]
                                    ).where(doi_realisation.c.doi_pk == inserted_primary_key)
         
-        results = self.con.execute(clause).fetchall()
+            results = self.con.execute(clause).fetchall()
+        except Exception as e:
+            error = "Could not mint DOI, exception: " + str(e)
+            traceback.print_exc()
+            log.error(error)
+            return(None, error)
         
         print(results)
         

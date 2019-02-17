@@ -6,10 +6,35 @@
   {{ super() }}
   
   {% if h.check_access('package_update', {'id':pkg.id }) %}
-      <a class="btn btn-success" href="{{ h.url_for('publish_package', package_id=pkg.name)}}" >
+      {% if pkg.publication_state and pkg.publication_state != 'none' %}
+		{% if pkg.publication_state == 'reserved' %}
+		    <a class="btn btn-info" href="" disabled title="DOI has been reserved but not registered in DataCite" onmouseover="" style="cursor: help;">
+				{{ _('DOI Reserved') }}
+				<i class="fa fa-icon fa-bookmark" ></i>
+		{% elif pkg.publication_state == 'pub_requested' %}
+	   	    <a class="btn btn-info" href="" disabled title="DOI publication in process" onmouseover="" style="cursor: help;">
+				{{ _('Requested') }}
+				<i class="fa fa-icon fa-share-square-o"></i>
+		{% elif pkg.publication_state == 'pub_pending' %}
+	   	    <a class="btn btn-info" href="" disabled title="DOI publication in process" onmouseover="" style="cursor: help;">
+	 			{{ _('Pending') }}
+				<i class="fa fa-icon fa-clock-o"></i>
+		{% elif pkg.publication_state == 'approved' %}
+	   	    <a class="btn btn-info" href="" disabled title="DOI publication approved by EnviDat and sent to DataCite" onmouseover="" style="cursor: help;">
+				{{ _('Approved') }}
+				<i class="fa fa-icon fa-check"></i>
+		{% elif pkg.publication_state == 'published' %}
+	   	    <a class="btn btn-primary" href="" disabled title="DOI publication finished" onmouseover="" style="cursor: help;">
+				{{ _('Published') }}
+				<i class="fa fa-icon fa-globe"></i>
+		{% endif %}
+		</a>      
+      {% else %}
+      <a class="btn btn-default" href="{{ h.url_for('publish_package', package_id=pkg.name)}}" >
       	<i class="fa fa-icon fa-cloud-upload"></i>
       	{{ _('Publish') }}
       </a>
+     {% endif %}
   {% endif %}
   
 {% endblock %}
