@@ -52,7 +52,7 @@ def _publish(data_dict, context, type='package'):
     # check if dataset has a DOI already
     existing_doi = dataset_dict.get('doi')
     if existing_doi:
-        return {'success': False, 'error': 'Dataset has alredy a DOI. Registering of custom DOI is currently not allowed'}
+        return {'success': False, 'error': 'Dataset has already a DOI. Registering of custom DOI is currently not allowed'}
 
     # mint doi mint_doi(self, ckan_id, ckan_user, prefix_id = None, suffix = None, entity='package')
     doi_index = DataciteIndexDOI()
