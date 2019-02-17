@@ -158,6 +158,7 @@ REVOKE ALL ON TABLE public.doi_realisation FROM postgres;
 GRANT ALL ON TABLE public.doi_realisation TO postgres;
 GRANT SELECT ON TABLE public.doi_realisation TO ckan_default;
 GRANT INSERT, UPDATE ON TABLE public.doi_realisation TO ckan_default;
+GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO ckan_default;
 
 INSERT INTO public.doi_prefix(prefix_id, description) VALUES ('10.16904', 'WSL prefix');
 INSERT INTO public.doi_prefix(prefix_id, description) VALUES ('10.12345', 'test prefix');
