@@ -2,10 +2,12 @@ import ckan.plugins as plugins
 import ckan.plugins.toolkit as toolkit
 
 import ckanext.datacite_publication.logic
+import ckanext.datacite_publication.helpers
 
 class Datacite_PublicationPlugin(plugins.SingletonPlugin):
     plugins.implements(plugins.IConfigurer)
     plugins.implements(plugins.IActions)
+    plugins.implements(plugins.ITemplateHelpers)
     plugins.implements(plugins.IRoutes, inherit=True)
 
     # IConfigurer
@@ -39,3 +41,7 @@ class Datacite_PublicationPlugin(plugins.SingletonPlugin):
             'datacite_publish_resource':
                 ckanext.datacite_publication.logic.datacite_publish_resource,
              }
+             
+    # ITemplateHelpers
+    def get_helpers(self):
+        return {'datacite_publication_is_admin':  ckanext.datacite_publication.helpers.datacite_publication_is_admin}
