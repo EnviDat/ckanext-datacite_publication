@@ -21,30 +21,30 @@ class DataciteIndexDOI(plugins.SingletonPlugin):
         self.con = sqlalchemy.create_engine(self.url, client_encoding='utf8')
         self.meta = sqlalchemy.MetaData(bind=self.con, reflect=True)
 
-    def is_doi_valid(self, doi, ckan_id, entity='package'):
+    def is_doi_valid(self, doi, ckan_id, entity_type='package'):
         prefix = doi.split('/',1)[0]
         suffix = doi.split('/',1)[1]
         doi_realisation = self.meta.tables['doi_realisation']
 
-        log.debug('check_doi doi = {0}, ckan_id = {1}, entity = {2}, site_id = "{3}"'.format(doi, ckan_id, entity, self.site_id))
+        log.debug('check_doi doi = {0}, ckan_id = {1}, entity_type = {2}, site_id = "{3}"'.format(doi, ckan_id, entity_type, self.site_id))
 
         clause = sqlalchemy.select([doi_realisation.c.prefix,
                                     doi_realisation.c.suffix]
                                    ).where(doi_realisation.c.site_id == self.site_id
-                                   ).where(doi_realisation.c.ckan_entity == entity
+                                   ).where(doi_realisation.c.ckan_entity == entity_type
                                    ).where(doi_realisation.c.ckan_id == ckan_id)
         results = self.con.execute(clause).fetchall()
         log.debug(results)
         if not results:
-           log.warn('CKAN ID not found ({entity}): {ckan_id}'.format(entity=entity, ckan_id=ckan_id))
+           log.warn('CKAN ID not found ({entity_type}): {ckan_id}'.format(entity_type=entity_type, ckan_id=ckan_id))
            return(False)
 
         for row in results:
             db_prefix=str(row[0][0])
             db_suffix=str(row[1])
             if(prefix==db_prefix) and (suffix==db_suffix):
-                log.debug('Check CKAN ID-DOI OK!! {entity}: {prefix}/{suffix}: {ckan_id}'.format(
-                                                      entity=entity,
+                log.debug('Check CKAN ID-DOI OK!! {entity_type}: {prefix}/{suffix}: {ckan_id}'.format(
+                                                      entity_type=entity_type,
                                                       prefix=db_prefix,
                                                       suffix=db_suffix, ckan_id=ckan_id))
                 return True
@@ -73,11 +73,11 @@ class DataciteIndexDOI(plugins.SingletonPlugin):
             return True
 
 
-    def mint_doi(self, ckan_id, ckan_user, ckan_name, prefix = None, suffix = None, entity='package'):
+    def mint_doi(self, ckan_id, ckan_user, ckan_name, prefix = None, suffix = None, metadata = "{}", entity_type='package'):
     
         doi_realisation = self.meta.tables['doi_realisation']
 
-        log.debug("mint_doi doi = {0}/{1}, ckan_id = {2}, entity = {3}, site_id = '{4}'".format(prefix, suffix, ckan_id, ckan_user,  entity, self.site_id))
+        log.debug("mint_doi doi = {0}/{1}, ckan_id = {2}, entity_type = {3}, site_id = '{4}'".format(prefix, suffix, ckan_id, ckan_user,  entity_type, self.site_id))
         
         # check if already exists
         prefix_id = self.prefix
@@ -94,7 +94,7 @@ class DataciteIndexDOI(plugins.SingletonPlugin):
 
         # insert row
         try:
-            mint_insert = doi_realisation.insert().values(prefix_id=prefix_id, ckan_id=ckan_id , ckan_name=ckan_name, ckan_user=ckan_user, site_id=self.site_id, metadata = "pending")
+            mint_insert = doi_realisation.insert().values(prefix_id=prefix_id, ckan_id=ckan_id , ckan_name=ckan_name, ckan_user=ckan_user, site_id=self.site_id, metadata = metadata)
         
             log.debug(mint_insert.compile().params)
             result = self.con.execute(mint_insert)

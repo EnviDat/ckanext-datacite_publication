@@ -1,5 +1,6 @@
 import sys
 import traceback
+import json
 
 import ckan.plugins.toolkit as toolkit
 import ckan.authz as authz
@@ -61,14 +62,15 @@ def _publish(data_dict, context, type='package'):
     if existing_doi:
         return {'success': False, 'error': 'Dataset has already a DOI. Registering of custom DOI is currently not allowed'}
 
-	# TODO: get package name and metadata
-	
+    # metadata
+    pkg_metadata = json.dumps(dataset_dict)
+    
     # notify admin
     datacite_publication_mail_admin(ckan_user, dataset_dict)
     
     # mint doi mint_doi(self, ckan_id, ckan_user, prefix_id = None, suffix = None, entity='package')
     doi_index = DataciteIndexDOI()
-    doi, error = doi_index.mint_doi( ckan_id=package_id, ckan_user=ckan_user, ckan_name=dataset_dict.get('name', "None"))
+    doi, error = doi_index.mint_doi( ckan_id=package_id, ckan_user=ckan_user, ckan_name=dataset_dict.get('name', "None"), metadata=pkg_metadata)
     
     if doi:
        # update dataset
