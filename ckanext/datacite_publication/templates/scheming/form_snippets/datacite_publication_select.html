@@ -1,6 +1,5 @@
 {% import 'macros/form.html' as form %}
 
-
 {% if h.datacite_publication_is_admin() %}
 	{%- snippet 'scheming/form_snippets/select.html', field=field, data=data, errors=errors -%}
 {% else %}

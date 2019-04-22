@@ -1,17 +1,17 @@
 import sys
 import traceback
-import json
 
 import ckan.plugins.toolkit as toolkit
 import ckan.authz as authz
 import ckan.lib.mailer as mailer
 from ckan.common import _
 from ckan.common import config
+import importlib
 
 import logging
 log = logging.getLogger(__name__)
 
-from doi_db_index import DataciteIndexDOI
+DEAFULT_MINTER = 'ckanext.datacite_publication.minter.DatacitePublicationMinter'
 
 @toolkit.side_effect_free
 def datacite_publish_package(context, data_dict):
@@ -62,15 +62,21 @@ def _publish(data_dict, context, type='package'):
     if existing_doi:
         return {'success': False, 'error': 'Dataset has already a DOI. Registering of custom DOI is currently not allowed'}
 
-    # metadata
-    pkg_metadata = json.dumps(dataset_dict)
-    
     # notify admin
     datacite_publication_mail_admin(ckan_user, dataset_dict)
     
     # mint doi mint_doi(self, ckan_id, ckan_user, prefix_id = None, suffix = None, entity='package')
-    doi_index = DataciteIndexDOI()
-    doi, error = doi_index.mint_doi( ckan_id=package_id, ckan_user=ckan_user, ckan_name=dataset_dict.get('name', "None"), metadata=pkg_metadata)
+    minter_name = config.get('datacite_publication.minter', DEAFULT_MINTER)
+    package_name, class_name = minter_name.rsplit('.', 1)
+    module = importlib.import_module(package_name)
+    minter_class = getattr(module, class_name)
+    minter = minter_class()
+    
+    prefix = config.get('datacite_publication.doi_prefix', '10.xxxxx')    
+
+    doi, error = minter.mint(prefix, pkg = dataset_dict, user = ckan_user)
+    
+    log.debug("minter got doi={0}, error={1}".format(doi, error))
     
     if doi:
        # update dataset
@@ -81,7 +87,6 @@ def _publish(data_dict, context, type='package'):
        return {'success': True, 'error': None}
     else:
        return {'success': False, 'error': error}
-        
     
     return
 

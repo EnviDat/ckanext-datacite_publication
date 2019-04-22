@@ -1,23 +1,24 @@
 import sqlalchemy
 import sys
 import traceback
+import json
 
 from ckantoolkit import config
 import ckan.plugins as plugins
 
+from ckanext.datacite_publication.minter import DatacitePublicationMinter
+
 import logging
 log = logging.getLogger(__name__)
 
-class DataciteIndexDOI(plugins.SingletonPlugin):
+class DataciteIndexDOI(DatacitePublicationMinter):
     def __init__(self):
-    
     
         self.prefix = config.get('datacite_publication.doi_prefix')    
         self.url = config.get('datacite_publication.sqlalchemy.url')
         self.site_id = config.get('datacite_publication.site_id')
         
         #TODO: check prefix exists
-        
         self.con = sqlalchemy.create_engine(self.url, client_encoding='utf8')
         self.meta = sqlalchemy.MetaData(bind=self.con, reflect=True)
 
@@ -72,11 +73,19 @@ class DataciteIndexDOI(plugins.SingletonPlugin):
             log.debug('TRUE')
             return True
 
+    def mint(self, prefix, pkg = None, *args, **kwargs):
+        # metadata
+        pkg_metadata = json.dumps(pkg)
+
+        # user
+        ckan_user = kwargs.get('user', 'undefined')
+        
+        return self.mint_doi(ckan_id=pkg.get('id', "None"), ckan_user=ckan_user, ckan_name=pkg.get('name', "None"), prefix=prefix, metadata=pkg_metadata)
+    
 
     def mint_doi(self, ckan_id, ckan_user, ckan_name, prefix = None, suffix = None, metadata = "{}", entity_type='package'):
-    
-        doi_realisation = self.meta.tables['doi_realisation']
 
+        doi_realisation = self.meta.tables['doi_realisation']
         log.debug("mint_doi doi = {0}/{1}, ckan_id = {2}, entity_type = {3}, site_id = '{4}'".format(prefix, suffix, ckan_id, ckan_user,  entity_type, self.site_id))
         
         # check if already exists
@@ -94,7 +103,7 @@ class DataciteIndexDOI(plugins.SingletonPlugin):
 
         # insert row
         try:
-            mint_insert = doi_realisation.insert().values(prefix_id=prefix_id, ckan_id=ckan_id , ckan_name=ckan_name, ckan_user=ckan_user, site_id=self.site_id, metadata = metadata)
+            mint_insert = doi_realisation.insert().values(prefix_id=prefix_id, ckan_id=ckan_id, ckan_name=ckan_name, ckan_user=ckan_user, site_id=self.site_id, metadata = metadata)
         
             log.debug(mint_insert.compile().params)
             result = self.con.execute(mint_insert)
@@ -111,12 +120,12 @@ class DataciteIndexDOI(plugins.SingletonPlugin):
             log.error(error)
             return(None, error)
         
-        print(results)
+        log.debug(str(results))
         
         for result in results:
             doi = result[0] + '/' + result[1]
             log.debug("NEW DOI = " + doi)
-            return(doi,None)
+            return (doi, None)
         
         error = "Could not retrieve inserted DOI"
         log.error(error)
@@ -129,4 +138,4 @@ class DataciteIndexDOI(plugins.SingletonPlugin):
         return unicode(self).encode('utf-8')
 
     def __unicode__(self):
-        return (u'IndexDOI({0}): \'{1}\' '.format(self.site_id, self.con))
+        return (u'DataciteIndexDOI({0}): \'{1}\' '.format(self.site_id, self.con))
