@@ -56,7 +56,7 @@ def _publish(data_dict, context, type='package'):
     
     # get user
     ckan_user = _get_username_from_context(context)
-    
+
     # check if dataset has a DOI already
     existing_doi = dataset_dict.get('doi')
     if existing_doi:
@@ -82,7 +82,9 @@ def _publish(data_dict, context, type='package'):
        # update dataset
        dataset_dict['doi'] = doi
        dataset_dict['private'] = False
-       dataset_dict['publication_state'] = 'reserved'
+       # TODO: check what is the proper state once workflow is complete
+       #dataset_dict['publication_state'] = 'reserved'
+       dataset_dict['publication_state'] = 'pub_pending'
        toolkit.get_action('package_update')(data_dict=dataset_dict)
        return {'success': True, 'error': None}
     else:
@@ -99,9 +101,9 @@ def _get_username_from_context(context):
         if authz.get_user_id_for_username(context.get('user'), allow_none=True):
             user_name = context.get('user', '')
     return user_name
-    
+
 # send email to admin on publication request
-def datacite_publication_mail_admin(user_id, entity, entity_type='package'):
+def datacite_publication_mail_admin(user_id, entity, user_email='', entity_type='package'):
 
     try:
         log.debug('datacite_publication_mail_admin: Notifying request from "{0}" ({1})'.format(user_id, entity.get('name','')))
@@ -129,14 +131,20 @@ def datacite_publication_mail_admin(user_id, entity, entity_type='package'):
         user_email = user['email']
         user_name = user.get('display_name', user['name'])
 
-        body =  "Notifying publication request: \n"
+        body =  "Notifying publication request to {0} ({1}): \n".format(admin_name, admin_email)
         body += "\t - User: {0} ({1})\n".format(user_name, user_email)
         body += "\t - Entity: {0} ({1})\n".format(entity_name, entity_type)
         body += "\t - URL: {0} ".format(entity_url)
-        subject = _('Publication Request {}').format(entity_name)
+        subject = _('Publication Request {0}').format(entity_name)
 
         # Send copy to admin
         mailer.mail_recipient(admin_name, admin_email, subject, body)
+        
+        # Send copy to user
+        if not user_email:
+            raise mailer.MailerException('Missing user email')
+        body += "\n\n * Your DOI request is being processed by the EnviDat team. The DOI is reserved but it will not be valid until the registration process is finished. *"
+        mailer.mail_recipient(user_name, user_email, subject, body)
         
     except Exception as e:
         log.error(('datacite_publication_mail_admin: '

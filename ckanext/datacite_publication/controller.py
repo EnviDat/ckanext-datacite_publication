@@ -32,9 +32,9 @@ class DatacitePublicationController(toolkit.BaseController):
             toolkit.abort(403, 'Not authorized')
 
         if result.get('success', True):
-            h.flash_notice('Publication success')
+            h.flash_notice('DOI successfully reserved. Your publication request will be approved by an EnviDat admin as soon as possible.')
         else:
-            error_message = 'Error publishing dataset: \n' + result.get('error', 'Internal Exception')
+            error_message = 'Error publishing dataset: \n' + result.get('error', 'Internal Exception, please contact the portal admin.')
             h.flash_error(error_message)
             #toolkit.abort(500, error_message)
         return toolkit.redirect_to(controller='package', action='read',
