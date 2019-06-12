@@ -30,7 +30,7 @@
 		{% endif %}
 		</a>      
       {% else %}
-      <a class="btn btn-default" href="{{ h.url_for('publish_package', package_id=pkg.name)}}" >
+      <a class="btn btn-default" href="{{ h.url_for('publish_package', package_id=pkg.name)}}" title="Click here to make the dataset public and request a DOI" onmouseover="" >
       	<i class="fa fa-icon fa-cloud-upload"></i>
       	{{ _('Publish') }}
       </a>
