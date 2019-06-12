@@ -73,21 +73,44 @@ class DataciteIndexDOI(DatacitePublicationMinter):
             log.debug('TRUE')
             return True
 
+    def is_dataset_published(self, ckan_id, entity_type):
+        doi_realisation = self.meta.tables['doi_realisation']
+        log.debug('is_dataset_published = {0} {1}'.format(id, entity_type))
+        clause = sqlalchemy.select([doi_realisation.c.prefix_id,
+                                    doi_realisation.c.suffix_id]
+                                   ).where(doi_realisation.c.site_id == self.site_id
+                                   ).where(doi_realisation.c.ckan_entity == entity_type
+                                   ).where(doi_realisation.c.ckan_id == ckan_id)
+        results = self.con.execute(clause).fetchall()
+        log.debug(results)
+        if not results:
+           log.debug('CKAN ID not found ({entity_type}): {ckan_id}'.format(entity_type=entity_type, ckan_id=ckan_id))
+           return(False, "")
+        else:
+           doi = "NOT FOUND"
+           try:
+               doi = str(results[0][0]) + "/" + str(results[0][1])
+           except Exception as e:
+               error = "Could not find DOI, exception: " + str(e)
+           log.warn('CKAN ID already has a DOI: ' + doi)
+           return (True, doi)
+
+
     def mint(self, prefix, pkg = None, *args, **kwargs):
         # metadata
         pkg_metadata = json.dumps(pkg)
 
         # user
         ckan_user = kwargs.get('user', 'undefined')
-        
+
         return self.mint_doi(ckan_id=pkg.get('id', "None"), ckan_user=ckan_user, ckan_name=pkg.get('name', "None"), prefix=prefix, metadata=pkg_metadata)
-    
 
     def mint_doi(self, ckan_id, ckan_user, ckan_name, prefix = None, suffix = None, metadata = "{}", entity_type='package'):
 
         doi_realisation = self.meta.tables['doi_realisation']
+
         log.debug("mint_doi doi = {0}/{1}, ckan_id = {2}, entity_type = {3}, site_id = '{4}'".format(prefix, suffix, ckan_id, ckan_user,  entity_type, self.site_id))
-        
+
         # check if already exists
         prefix_id = self.prefix
         if prefix:
@@ -98,8 +121,12 @@ class DataciteIndexDOI(DatacitePublicationMinter):
                 error = "ERROR minting DOI: Already exists"
                 log.error(error)
                 return (None, error)
-                
+
         # check if ckan_id already registered
+        has_doi,existing_doi = self.is_dataset_published(ckan_id, entity_type)
+        if has_doi:
+            error = "ERROR minting DOI: Dataset already published, DOI: " + existing_doi
+            return (None, error)
 
         # insert row
         try:

@@ -41,7 +41,7 @@ class Datacite_PublicationPlugin(plugins.SingletonPlugin):
             'datacite_publish_resource':
                 ckanext.datacite_publication.logic.datacite_publish_resource,
              }
-             
+
     # ITemplateHelpers
     def get_helpers(self):
         return { 'datacite_publication_is_admin': helpers.datacite_publication_is_admin,
