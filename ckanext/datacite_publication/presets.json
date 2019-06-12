@@ -15,7 +15,7 @@
       "preset_name": "datacite_publication_doi_text",
       "values": {
         "form_snippet": "datacite_publication_doi_text.html",
-        "display_snippet": "text.html",
+        "display_snippet": "datacite_publication_doi_display_text.html",
         "validators": "scheming_required"
       }
     }
