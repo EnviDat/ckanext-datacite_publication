@@ -23,7 +23,8 @@
 <div class="form-group control-select">
 
   <label class="control-label" for="field-publication_state">Publication State</label>
-  <p>{{ options[0].get('text', data.get(field.field_name, 'None')) }}</p>
+  {% set pub_state_text = options[0].get('text', data.get(field.field_name, 'None')) %}
+  <p>{{ pub_state_text if  len(pub_state_text)>1 else 'None' }}</p>
 
   <div class="controls" hidden="true">
   <select id="field-publication_state" name="publication_state" class="form-control" hidden="true">
