@@ -124,10 +124,6 @@ def _approve(data_dict, context, type='package'):
         raise toolkit.ValidationError({'id': 'missing id'})
     dataset_dict = toolkit.get_action('package_show')(context, {'id': id_or_name})
     
-    # notify owner
-    dataset_owner = dataset_dict.get('creator_user_id', '')
-    datacite_approved_mail(dataset_owner, dataset_dict, context)
-
     # DOI has to be already reserved (minted)
     doi = dataset_dict.get('doi', '')
     prefix = config.get('datacite_publication.doi_prefix', '10.xxxxx')    
