@@ -5,36 +5,85 @@
   
   {{ super() }}
   
-  {% if h.check_access('package_update', {'id':pkg.id }) %}
-      {% if pkg.publication_state and pkg.publication_state != 'none' %}
-		{% if pkg.publication_state == 'reserved' %}
-		    <a class="btn btn-info" href="" disabled title="DOI has been reserved but not registered in DataCite" onmouseover="" style="cursor: help;">
-				{{ _('DOI Reserved') }}
-				<i class="fa fa-icon fa-bookmark" ></i>
-		{% elif pkg.publication_state == 'pub_requested' %}
-	   	    <a class="btn btn-info" href="" disabled title="DOI publication in process" onmouseover="" style="cursor: help;">
-				{{ _('Requested') }}
-				<i class="fa fa-icon fa-share-square-o"></i>
-		{% elif pkg.publication_state == 'pub_pending' %}
-	   	    <a class="btn btn-info" href="" disabled title="DOI publication in process" onmouseover="" style="cursor: help;">
-	 			{{ _('Pending') }}
-				<i class="fa fa-icon fa-clock-o"></i>
-		{% elif pkg.publication_state == 'approved' %}
-	   	    <a class="btn btn-info" href="" disabled title="DOI publication approved by EnviDat and sent to DataCite" onmouseover="" style="cursor: help;">
-				{{ _('Approved') }}
-				<i class="fa fa-icon fa-check"></i>
-		{% elif pkg.publication_state == 'published' %}
-	   	    <a class="btn btn-primary" href="" disabled title="DOI publication finished" onmouseover="" style="cursor: help;">
-				{{ _('Published') }}
-				<i class="fa fa-icon fa-globe"></i>
-		{% endif %}
-		</a>      
-      {% else %}
-      <a class="btn btn-default" href="{{ h.url_for('publish_package', package_id=pkg.name)}}" title="Click here to make the dataset public and request a DOI" onmouseover="" >
-      	<i class="fa fa-icon fa-cloud-upload"></i>
-      	{{ _('Publish') }}
-      </a>
-     {% endif %}
+  {% if h.datacite_publication_is_admin() and h.check_access('package_update', {'id':pkg.id }) %}
+      {# ADMIN #} 
+            {% if not pkg.publication_state or pkg.publication_state == 'none' or pkg.publication_state == 'published' %}
+            	{% if pkg.publication_state == 'published' %}
+                	<a class="btn btn-primary" href="" disabled title="DOI publication finished" onmouseover="" style="cursor: help;">
+                   	 	{{ _('Published') }}
+                    	<i class="fa fa-icon fa-globe"></i>
+                    </a>      
+				{% else %}
+					  <a class="btn btn-default" href="{{ h.url_for('publish_package', package_id=pkg.name)}}" title="Click here to make the dataset public and request a DOI" onmouseover="" >
+						<i class="fa fa-icon fa-cloud-upload"></i>
+						{{ _('Publish') }}
+					  </a>
+				{% endif %}
+            {% else %}
+           		<div class="dropdown btn-group">
+ 				{% if pkg.publication_state == 'reserved' %}
+					<a class="btn btn-info dropdown-toggle" data-toggle="dropdown"  href="#" >
+						<i class="fa fa-icon fa-bookmark" ></i>
+						{{ _('DOI Reserved') }}
+				{% elif pkg.publication_state == 'pub_requested' %}
+					<a class="btn btn-info dropdown-toggle" data-toggle="dropdown" href="#">
+						<i class="fa fa-icon fa-share-square-o"></i>
+						{{ _('Requested') }}
+				{% elif pkg.publication_state == 'pub_pending' %}
+					<a class="btn btn-info dropdown-toggle" data-toggle="dropdown"  href="#">
+						<i class="fa fa-icon fa-clock-o"></i>
+						{{ _('Pending') }}
+				{% elif pkg.publication_state == 'approved' %}
+					<a class="btn btn-info dropdown-toggle" data-toggle="dropdown"  href="#">
+						<i class="fa fa-icon fa-check"></i>
+						{{ _('Approved') }}
+				{% else %}
+					<!-- Unknown state, review code -->
+					<a class="btn btn-danger dropdown-toggle" data-toggle="dropdown"  href="#" disabled >
+						<i class="fa fa-icon fa-question-circle"></i>
+						{{ pkg.publication_state }}
+				{% endif %}
+					<span class="caret"></span>
+					</a>  
+					<ul class="dropdown-menu">
+						<li><a href="{{ h.url_for('approve_publication_package', package_id=pkg.name)}}"><i class="fa fa-check"></i> Approve </a></li>
+						<li class="disabled"><a href="" target="_blank" disabled><i class="fa fa-times-circle"></i> Deny </a></li>
+					</ul>
+				</div>   
+	  		{% endif %}   
+  {% else %}
+      {# OWNER #} 
+      {% if h.check_access('package_update', {'id':pkg.id }) %}
+          {% if pkg.publication_state and pkg.publication_state != 'none' %}
+            {% if pkg.publication_state == 'reserved' %}
+                <a class="btn btn-info" href="" disabled title="DOI has been reserved but not registered in DataCite" onmouseover="" style="cursor: help;">
+                    {{ _('DOI Reserved') }}
+                    <i class="fa fa-icon fa-bookmark" ></i>
+            {% elif pkg.publication_state == 'pub_requested' %}
+                <a class="btn btn-info" href="" disabled title="DOI publication in process" onmouseover="" style="cursor: help;">
+                    {{ _('Requested') }}
+                    <i class="fa fa-icon fa-share-square-o"></i>
+            {% elif pkg.publication_state == 'pub_pending' %}
+                <a class="btn btn-info" href="" disabled title="DOI publication in process" onmouseover="" style="cursor: help;">
+                    {{ _('Pending') }}
+                    <i class="fa fa-icon fa-clock-o"></i>
+            {% elif pkg.publication_state == 'approved' %}
+                <a class="btn btn-info" href="" disabled title="DOI publication approved by EnviDat and sent to DataCite" onmouseover="" style="cursor: help;">
+                    {{ _('Approved') }}
+                    <i class="fa fa-icon fa-check"></i>
+            {% elif pkg.publication_state == 'published' %}
+                <a class="btn btn-primary" href="" disabled title="DOI publication finished" onmouseover="" style="cursor: help;">
+                    {{ _('Published') }}
+                    <i class="fa fa-icon fa-globe"></i>
+            {% endif %}
+            </a>      
+         {% else %}
+          <a class="btn btn-default" href="{{ h.url_for('publish_package', package_id=pkg.name)}}" title="Click here to make the dataset public and request a DOI" onmouseover="" >
+            <i class="fa fa-icon fa-cloud-upload"></i>
+            {{ _('Publish') }}
+          </a>
+         {% endif %}
+      {% endif %}
   {% endif %}
   
 {% endblock %}

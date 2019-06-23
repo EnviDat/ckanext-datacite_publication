@@ -1,12 +1,13 @@
 # coding: utf8 
 
-
 from ckan.common import c
 import ckan.plugins.toolkit as toolkit
 
-def datacite_publication_is_admin():
-
-    username = c.user
+def datacite_publication_is_admin(name=None):
+    
+    username = name
+    if not name:
+        username = c.user
    
     # Get user information
     context = {}
