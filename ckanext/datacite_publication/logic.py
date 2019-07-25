@@ -216,7 +216,7 @@ def datacite_approved_mail(user_id, entity, context, user_email='', entity_type=
         entity_doi = entity['doi']
         
         # Get admin data
-        admin_name = _('CKAN System Administrator')
+        admin_name = config.get('site_title', 'CKAN') + ' '  + _('Administrator')
         admin_email = config.get('email_to')
 
         # Get user information
