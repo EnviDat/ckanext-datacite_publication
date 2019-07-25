@@ -260,8 +260,10 @@ def datacite_approved_mail(user_id, entity, context, user_email='', entity_type=
             maintainer_email = maintainer_object.get("email")
             maintainer_name = maintainer_object.get("name", "Dataset Contact Point")
             if maintainer_email and maintainer_email not in sent_mails:
-                mailer.mail_recipient(maintainer_name, maintainer_email, subject, "\t ** COPY ** \n\n" + body)
-                sent_mails += [maintainer_email]
+                # TODO: Temporary disabled this for testing
+                log.debug("skipping mail sending to {0}".format(maintainer_email))
+                #mailer.mail_recipient(maintainer_name, maintainer_email, subject, "\t ** COPY ** \n\n" + body)
+                #sent_mails += [maintainer_email]
         
     except Exception as e:
         log.error(('datacite_approved_mail: '
