@@ -13,7 +13,7 @@ def datacite_publication_is_admin(name=None):
     if not name:
         username = c.user
 
-    if not username or len(name.strip())<1:
+    if not username:
         return False
 
     # Get user information
