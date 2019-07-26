@@ -102,8 +102,9 @@ class DataciteIndexDOI(DatacitePublicationMinter):
 
         # user
         ckan_user = kwargs.get('user', 'undefined')
+        suffix = kwargs.get('suffix', None)
 
-        return self.mint_doi(ckan_id=pkg.get('id', "None"), ckan_user=ckan_user, ckan_name=pkg.get('name', "None"), prefix=prefix, metadata=pkg_metadata)
+        return self.mint_doi(ckan_id=pkg.get('id', "None"), ckan_user=ckan_user, ckan_name=pkg.get('name', "None"), prefix=prefix, suffix=suffix, metadata=pkg_metadata)
 
     def mint_doi(self, ckan_id, ckan_user, ckan_name, prefix = None, suffix = None, metadata = "{}", entity_type='package'):
 
@@ -130,7 +131,10 @@ class DataciteIndexDOI(DatacitePublicationMinter):
 
         # insert row
         try:
-            mint_insert = doi_realisation.insert().values(prefix_id=prefix_id, ckan_id=ckan_id, ckan_name=ckan_name, ckan_user=ckan_user, site_id=self.site_id, metadata = metadata)
+            if suffix:
+                mint_insert = doi_realisation.insert().values(prefix_id=prefix_id, suffix_id=suffix, ckan_id=ckan_id, ckan_name=ckan_name, ckan_user=ckan_user, site_id=self.site_id, metadata = metadata)
+            else:
+                mint_insert = doi_realisation.insert().values(prefix_id=prefix_id, ckan_id=ckan_id, ckan_name=ckan_name, ckan_user=ckan_user, site_id=self.site_id, metadata = metadata)
         
             log.debug(mint_insert.compile().params)
             result = self.con.execute(mint_insert)

@@ -78,7 +78,10 @@ def _publish(data_dict, context, type='package'):
     # check if dataset has a DOI already
     existing_doi = dataset_dict.get('doi')
     if existing_doi:
-        return {'success': False, 'error': 'Dataset has already a DOI. Registering of custom DOI is currently not allowed'}
+        if helpers.datacite_publication_is_admin(ckan_user):
+            return _publish_custom_by_admin(dataset_dict, package_id, ckan_user, context, type)
+        else:
+            return {'success': False, 'error': 'Dataset has already a DOI. Registering of custom DOI is currently not allowed'}
 
     # mint doi mint_doi(self, ckan_id, ckan_user, prefix_id = None, suffix = None, entity='package')
     minter_name = config.get('datacite_publication.minter', DEAFULT_MINTER)
@@ -112,8 +115,55 @@ def _publish(data_dict, context, type='package'):
        log.error("error minting DOI for package {0}, error{1}".format(package_id, error))
        return {'success': False, 'error': error}
     
-    return
+    return {'success': False, 'error': 'Internal error'}
 
+def _publish_custom_by_admin(dataset_dict, package_id, ckan_user, context, type='package'):
+    custom_doi = dataset_dict['doi']
+    custom_prefix = custom_doi.split('/')[0].strip()
+    try:
+        custom_suffix = custom_doi.split('/')[1].strip()
+    except:
+        return {'success': False, 'error': 'Custom suffix not allowed'}  
+          
+    allowed_prefixes = config.get('datacite_publication.custom_prefix', '').split(' ')
+    
+    if custom_prefix not in allowed_prefixes:
+        return {'success': False, 'error': 'Custom prefix not allowed'}
+    
+    log.info("publishing CUSTOM DOI by an Admin {0}, allowed: {1}".format(custom_doi, allowed_prefixes))
+    
+    # mint doi mint_doi(self, ckan_id, ckan_user, prefix_id = None, suffix = None, entity='package')
+    minter_name = config.get('datacite_publication.minter', DEAFULT_MINTER)
+    package_name, class_name = minter_name.rsplit('.', 1)
+    module = importlib.import_module(package_name)
+    minter_class = getattr(module, class_name)
+    minter = minter_class()
+    
+    doi, error = minter.mint(custom_prefix, pkg = dataset_dict, user = ckan_user, suffix = custom_suffix)
+    
+    log.debug("minter got doi={0}, error={1}".format(doi, error))
+    
+    if doi:
+       # update dataset
+       dataset_dict['doi'] = doi
+       dataset_dict['private'] = False
+       # TODO: check what is the proper state once workflow is complete
+       #dataset_dict['publication_state'] = 'reserved'
+       dataset_dict['publication_state'] = 'pub_pending'
+       context['message'] = REQUEST_MESSAGE + " for dataset {0}".format(package_id)
+       toolkit.get_action('package_update')(context=context, data_dict=dataset_dict)
+       
+       # notify admin and user
+       datacite_publication_mail_admin(ckan_user, dataset_dict)
+       
+       log.info("success minting DOI for package {0}, doi {1}".format(package_id, doi))
+       return {'success': True, 'error': None}
+    else:
+       log.error("error minting DOI for package {0}, error{1}".format(package_id, error))
+       return {'success': False, 'error': error.split('DETAIL')[0]}
+    
+    return {'success': False, 'error': 'Internal error'}
+    
 def _approve(data_dict, context, type='package'):
     
     log.debug('_approve: Approving "{0}" ({1})'.format(data_dict['id'], data_dict.get('name','')))
@@ -126,11 +176,15 @@ def _approve(data_dict, context, type='package'):
     
     # DOI has to be already reserved (minted)
     doi = dataset_dict.get('doi', '')
-    prefix = config.get('datacite_publication.doi_prefix', '10.xxxxx')    
-    log.debug('_approve: Doi "{0}" ({1})'.format(doi, prefix))
+    default_prefix = config.get('datacite_publication.doi_prefix', '10.xxxxx')    
+    allowed_prefixes = config.get('datacite_publication.custom_prefix', '').split(' ') + [ default_prefix ]
 
-    if (not doi) or (len(doi) <=0) or (not doi.startswith(prefix + '/')) :
-        raise toolkit.ValidationError({'doi': 'dataset has no valid minted DOI ' + prefix + '/*'})
+    log.debug('_approve: Doi "{0}" ({1})'.format(doi, ', '.join(allowed_prefixes)))
+
+    doi_prefix = doi.split('/')[0].strip()
+    
+    if (not doi) or (len(doi) <=0) or (doi_prefix not in allowed_prefixes) :
+        raise toolkit.ValidationError({'doi': 'dataset has no valid minted DOI [' + ', '.join(allowed_prefixes) + ']/*'})
     
     # Check authorization
     package_id = dataset_dict.get('package_id', dataset_dict.get('id', id_or_name))
@@ -142,7 +196,8 @@ def _approve(data_dict, context, type='package'):
                 'permissions': ['Not authorized to approve the dataset (admin only).']})
     
     # change publication state
-    dataset_dict['publication_state'] = 'published'
+    dataset_dict['publication_state'] = 'approved'
+    dataset_dict['private'] = False
     context['message'] = APPROVAL_MESSAGE + " for dataset {0}".format(package_id)
     toolkit.get_action('package_update')(context=context, data_dict=dataset_dict)
     
