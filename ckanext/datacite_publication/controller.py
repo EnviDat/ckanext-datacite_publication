@@ -73,6 +73,40 @@ class DatacitePublicationController(toolkit.BaseController):
         return toolkit.redirect_to(controller='package', action='read',
                             id=package_id)
     
+    def manual_finish_publication_package(self, package_id):
+        '''Finish manually the publication process for a dataset by the admin.
+        '''
+        context = {
+            'model': model,
+            'session': model.Session,
+            'user': toolkit.c.user,
+        }
+
+        log.debug("controller: manual_finish_publication_package: {0}".format(package_id))
+        
+        try:
+            result = toolkit.get_action(
+                'manual_finish_publication_package')(
+                context,
+                {'id': package_id}
+            )
+        except toolkit.ObjectNotFound:
+            toolkit.abort(404, 'Dataset not found')
+        except toolkit.NotAuthorized:
+            toolkit.abort(403, 'Not authorized')
+        except toolkit.ValidationError:
+            toolkit.abort(400, 'Validation error')
+
+        if result.get('success', True):
+            h.flash_notice('DOI publication finished.')
+        else:
+            error_message = 'Error finishing dataset publication: \n' + result.get('error', 'Internal Exception, please contact the portal admin.')
+            h.flash_error(error_message)
+            #toolkit.abort(500, error_message)
+        return toolkit.redirect_to(controller='package', action='read',
+                            id=package_id)
+    
+    
     def publish_resource(self, resource_id):
         '''Start publication process for a resource.
         '''

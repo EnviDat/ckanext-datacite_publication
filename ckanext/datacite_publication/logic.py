@@ -18,6 +18,7 @@ DEAFULT_MINTER = 'ckanext.datacite_publication.minter.DatacitePublicationMinter'
 
 REQUEST_MESSAGE = 'Datacite publication REQUESTED'
 APPROVAL_MESSAGE = 'Datacite publication APPROVED'
+FINISH_MESSAGE = 'Datacite publication FINISHED'
 
 @toolkit.side_effect_free
 def datacite_publish_package(context, data_dict):
@@ -42,6 +43,18 @@ def datacite_approve_publication_package(context, data_dict):
     '''
     log.debug("logic: datacite_approve_publication_package: {0}".format(data_dict.get('id')))
     return(_approve(data_dict, context, type='package'))
+
+@toolkit.side_effect_free
+def datacite_manual_finish_publication_package(context, data_dict):
+    '''Finish manually the publication process for a dataset
+       by a portal admin.
+    :param id: the ID of the dataset
+    :type id: string
+    :returns: the package doi
+    :rtype: string
+    '''
+    log.debug("logic: datacite_manual_finish_publication_package: {0}".format(data_dict.get('id')))
+    return(_finish_manually(data_dict, context, type='package'))
 
 @toolkit.side_effect_free
 def datacite_publish_resource(context, data_dict):
@@ -207,6 +220,41 @@ def _approve(data_dict, context, type='package'):
 
     return {'success': True, 'error': None}
     
+def _finish_manually(data_dict, context, type='package'):
+    
+    log.debug('_finish_manually: Finishing "{0}" ({1})'.format(data_dict['id'], data_dict.get('name','')))
+    # a dataset id i s necessary
+    try:
+        id_or_name = data_dict['id']
+    except KeyError:
+        raise toolkit.ValidationError({'id': 'missing id'})
+    dataset_dict = toolkit.get_action('package_show')(context, {'id': id_or_name})
+    
+    # DOI has to be already reserved (minted)
+    if not dataset_dict.get('doi', None):
+        raise toolkit.ValidationError({'doi': 'dataset has no valid minted DOI'})
+        
+    # Check authorization
+    package_id = dataset_dict.get('package_id', dataset_dict.get('id', id_or_name))
+    if not authz.is_authorized(
+            'package_update', context,
+            {'id': package_id}).get('success', False) or not helpers.datacite_publication_is_admin():
+        log.error('ERROR finishing publication dataset, current user is not authorized: isAdmin = {0}'.format(helpers.datacite_publication_is_admin()))
+        raise toolkit.NotAuthorized({
+                'permissions': ['Not authorized to finish manually the dataset publication (admin only).']})
+    
+    # change publication state
+    dataset_dict['publication_state'] = 'published'
+    dataset_dict['private'] = False
+    context['message'] = FINISH_MESSAGE + " for dataset {0}".format(package_id)
+    toolkit.get_action('package_update')(context=context, data_dict=dataset_dict)
+    
+    # notify owner and involved users
+    dataset_owner = dataset_dict.get('creator_user_id', '')
+    datacite_finished_mail(dataset_owner, dataset_dict, context)
+
+    return {'success': True, 'error': None}
+    
 def _get_username_from_context(context):
     auth_user_obj = context.get('auth_user_obj', None)
     user_name = ''
@@ -322,6 +370,74 @@ def datacite_approved_mail(user_id, entity, context, user_email='', entity_type=
         
     except Exception as e:
         log.error(('datacite_approved_mail: '
+                     'Failed to send mail to user "{0}": {1}, {2}').format(user_id,e, traceback.format_exc().splitlines()))
+
+# send email to user on publication finishing
+def datacite_finished_mail(user_id, entity, context, user_email='', entity_type='package'):
+
+    try:
+        log.debug('datacite_finished_mail: Notifying finishined publication of dataset {0}'.format(entity.get('name','')))
+
+        # keep track of sent mails
+        sent_mails = []
+        
+        # Entity info
+        entity_id = entity['id']
+        entity_name = entity['name']
+        entity_doi = entity['doi']
+        
+        # Get admin data
+        admin_name = config.get('site_title', 'CKAN') + ' '  + _('Administrator')
+        admin_email = config.get('email_to')
+
+        # Get user information
+        user = _get_user_info(user_id)
+        if not user_email:
+            user_email = user['email']
+        user_name = user.get('display_name', user['name'])
+        
+        # get the mail content
+        body =  "Notifying publication finishing from {0} ({1}): \n".format(admin_name, admin_email)
+        body += "\t - User: {0} ({1})\n".format(user_name, user_email)
+        body += "\t - Entity: {0} ({1})\n".format(entity_name, entity_type)
+        body += "\t - URL: {0} \n".format(_get_entity_url(entity, entity_type=entity_type))
+        body += "\t - DOI: https://doi.org/{0} ".format(entity_doi)
+        subject = _('Publication Finished {0}').format(entity_name)
+
+        # Send mail to user who requested the publication
+        user_request = _get_user_request(entity_id, context)
+        if user_request:
+            log.debug('Requesting author was {0}'.format(user_request.get('display_name')))
+            if user_request['email'] not in sent_mails:
+                mailer.mail_recipient(user_request.get('display_name', user_request['name']), user_request['email'], subject, body)
+                sent_mails += [user_request['email']]
+         
+        # Send copy to admin
+        if admin_email and admin_email not in sent_mails:
+            mailer.mail_recipient(admin_name, admin_email, subject, "\t ** COPY ** \n\n" + body)
+            sent_mails += [admin_email]
+        
+        # Send copy to dataset owner (?)
+        if user_email and user_email not in sent_mails:
+            mailer.mail_recipient(user_name, user_email, subject, body)
+            sent_mails += [user_email]
+           
+        # Send copy to dataset contact point
+        if entity.get("maintainer_email") and entity.get("maintainer_email") not in sent_mails:
+            mailer.mail_recipient("Dataset Contact Point", entity.get("maintainer_email"), subject, "\t ** COPY ** \n\n" + body)
+            sent_mails += [entity.get("maintainer_email")]
+        else:
+            maintainer_object = json.loads(entity.get("maintainer", "{}"))
+            maintainer_email = maintainer_object.get("email")
+            maintainer_name = maintainer_object.get("name", "Dataset Contact Point")
+            if maintainer_email and maintainer_email not in sent_mails:
+                # TODO: Temporary disabled this for testing
+                log.debug("skipping mail sending to {0}".format(maintainer_email))
+                #mailer.mail_recipient(maintainer_name, maintainer_email, subject, "\t ** COPY ** \n\n" + body)
+                #sent_mails += [maintainer_email]
+        
+    except Exception as e:
+        log.error(('datacite_finished_mail: '
                      'Failed to send mail to user "{0}": {1}, {2}').format(user_id,e, traceback.format_exc().splitlines()))
 
 def _get_entity_url(entity, entity_type='package'):
