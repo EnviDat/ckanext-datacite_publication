@@ -11,6 +11,8 @@ import importlib
 
 import ckanext.datacite_publication.helpers as helpers
 
+from ckanext.datacite_publication.datacite_publisher import DatacitePublisher
+
 import logging
 log = logging.getLogger(__name__)
 
@@ -55,6 +57,19 @@ def datacite_manual_finish_publication_package(context, data_dict):
     '''
     log.debug("logic: datacite_manual_finish_publication_package: {0}".format(data_dict.get('id')))
     return(_finish_manually(data_dict, context, type='package'))
+
+@toolkit.side_effect_free
+def datacite_finish_publication_package(context, data_dict):
+    '''Finish the publication process for a dataset
+       sending it to datacite API
+       by a portal admin.
+    :param id: the ID of the dataset
+    :type id: string
+    :returns: the package doi
+    :rtype: string
+    '''
+    log.debug("logic: datacite_finish_publication_package: {0}".format(data_dict.get('id')))
+    return(_publish_to_datacite(data_dict, context, type='package'))
 
 @toolkit.side_effect_free
 def datacite_publish_resource(context, data_dict):
@@ -255,6 +270,58 @@ def _finish_manually(data_dict, context, type='package'):
 
     return {'success': True, 'error': None}
     
+def _publish_to_datacite(data_dict, context, type='package'):
+    
+    log.debug('_publish_to_datacite: Publishing to dataite "{0}" ({1})'.format(data_dict['id'], data_dict.get('name','')))
+    # a dataset id i s necessary
+    try:
+        id_or_name = data_dict['id']
+    except KeyError:
+        raise toolkit.ValidationError({'id': 'missing id'})
+    dataset_dict = toolkit.get_action('package_show')(context, {'id': id_or_name})
+    
+    # state has to be approved
+    state = dataset_dict.get('publication_state', '')
+    if state != 'approved':
+        raise toolkit.ValidationError({'publication_state': 'dataset needs to be in state "approved" (by the admin)'})
+    
+    # DOI has to be already reserved (minted)
+    doi = dataset_dict.get('doi', '')
+    default_prefix = config.get('datacite_publication.doi_prefix', '10.xxxxx')    
+    allowed_prefixes = config.get('datacite_publication.custom_prefix', '').split(' ') + [ default_prefix ]
+    doi_prefix = doi.split('/')[0].strip()
+    
+    if (not doi) or (len(doi) <=0) or (doi_prefix not in allowed_prefixes) :
+        raise toolkit.ValidationError({'doi': 'dataset has no valid minted DOI [' + ', '.join(allowed_prefixes) + ']/*'})
+    
+    # Check authorization
+    package_id = dataset_dict.get('package_id', dataset_dict.get('id', id_or_name))
+    if not authz.is_authorized(
+            'package_update', context,
+            {'id': package_id}).get('success', False) or not helpers.datacite_publication_is_admin():
+        log.error('ERROR finishing publication dataset in datacite, current user is not authorized: isAdmin = {0}'.format(helpers.datacite_publication_is_admin()))
+        raise toolkit.NotAuthorized({
+                'permissions': ['Not authorized to perform the dataset publication to datacite (admin only).']})
+    
+    datacite_publisher = DatacitePublisher()
+    doi, error = datacite_publisher.publish(doi, pkg = dataset_dict)
+    
+    if error:
+       log.error("error publishin package {0} to Datacite, error {1}".format(package_id, error))
+       return {'success': False, 'error': error}
+    
+    # change publication state
+    dataset_dict['publication_state'] = 'published'
+    dataset_dict['private'] = False
+    context['message'] = FINISH_MESSAGE + " for dataset {0}".format(package_id)
+    toolkit.get_action('package_update')(context=context, data_dict=dataset_dict)
+    
+    # notify owner and involved users
+    dataset_owner = dataset_dict.get('creator_user_id', '')
+    datacite_finished_mail(dataset_owner, dataset_dict, context)
+
+    return {'success': True, 'error': None}
+
 def _get_username_from_context(context):
     auth_user_obj = context.get('auth_user_obj', None)
     user_name = ''

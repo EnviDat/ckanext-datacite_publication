@@ -19,4 +19,4 @@ class DatacitePublicationMinter(plugins.SingletonPlugin):
         return unicode(self).encode('utf-8')
 
     def __unicode__(self):
-        return (u'DatacitePublicationMinter: prefix=\'{0}\' '.format(self.prefix))
+        return (u'DatacitePublicationMinter')

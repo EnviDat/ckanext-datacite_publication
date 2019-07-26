@@ -38,6 +38,12 @@ class Datacite_PublicationPlugin(plugins.SingletonPlugin):
             action = 'manual_finish_publication_package'
         )
         map_.connect(
+            'finish_publication_package',
+            '/dataset/{package_id}/finish_publication_package/datacite',
+            controller='ckanext.datacite_publication.controller:DatacitePublicationController',
+            action = 'finish_publication_package'
+        )
+        map_.connect(
             'publish_resource',
             '/dataset/{package_id}/resource/{resource_id}/publish/datacite',
             controller='ckanext.datacite_publication.controller:DatacitePublicationController',
@@ -50,11 +56,13 @@ class Datacite_PublicationPlugin(plugins.SingletonPlugin):
         return {
             'datacite_publish_package':
                 ckanext.datacite_publication.logic.datacite_publish_package,
-            'approve_publication_package':
+            'datacite_approve_publication_package':
                 ckanext.datacite_publication.logic.datacite_approve_publication_package,
-            'manual_finish_publication_package':
+            'datacite_manual_finish_publication_package':
                 ckanext.datacite_publication.logic.datacite_manual_finish_publication_package,
-            'datacite_publish_resource':
+            'datacite_finish_publication_package':
+                ckanext.datacite_publication.logic.datacite_finish_publication_package,
+            'datacite_datacite_publish_resource':
                 ckanext.datacite_publication.logic.datacite_publish_resource
              }
 

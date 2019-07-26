@@ -47,7 +47,7 @@
 					</a>  
 					<ul class="dropdown-menu">
 					{% if pkg.publication_state == 'approved' %}
-						<li><a href=""><i class="fa fa-cloud-upload"></i> Publish to Datacite </a></li>
+						<li><a href="{{ h.url_for('finish_publication_package', package_id=pkg.name)}}"><i class="fa fa-cloud-upload"></i> Publish to Datacite </a></li>
 						<li><a href="{{ h.url_for('manual_finish_publication_package', package_id=pkg.name)}}"><i class="fa fa-user-plus"></i> Manually Published </a></li>
 				    {% else %}
 						<li><a href="{{ h.url_for('approve_publication_package', package_id=pkg.name)}}"><i class="fa fa-check"></i> Approve </a></li>
