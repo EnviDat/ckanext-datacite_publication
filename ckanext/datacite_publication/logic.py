@@ -307,9 +307,12 @@ def _publish_to_datacite(data_dict, context, type='package'):
     
     try:
         doi, error = datacite_publisher.publish(doi, pkg = dataset_dict, context = context)
+    except Exception as e:
+       log.error("exception publishing package {0} to Datacite, error {1}".format(package_id, traceback.format_exc()))
+       return {'success': False, 'error': 'Exception when publishing to DataCite: {0}'.format(e)}
     except:
        log.error("error publishing package {0} to Datacite, error {1}".format(package_id, sys.exc_info()[0]))
-       return {'success': False, 'error': 'Exception when publishing to DataCite: {0}'.format(sys.exc_info()[0])}
+       return {'success': False, 'error': 'Unknown error when publishing to DataCite: {0}'.format(sys.exc_info()[0])}
     
     if error:
        log.error("error publishing package {0} to Datacite, error {1}".format(package_id, error))
