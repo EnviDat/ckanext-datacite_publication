@@ -304,10 +304,15 @@ def _publish_to_datacite(data_dict, context, type='package'):
                 'permissions': ['Not authorized to perform the dataset publication to datacite (admin only).']})
     
     datacite_publisher = DatacitePublisher()
-    doi, error = datacite_publisher.publish(doi, pkg = dataset_dict)
+    
+    try:
+        doi, error = datacite_publisher.publish(doi, pkg = dataset_dict, context = context)
+    except:
+       log.error("error publishing package {0} to Datacite, error {1}".format(package_id, sys.exc_info()[0]))
+       return {'success': False, 'error': 'Exception when publishing to DataCite: {0}'.format(sys.exc_info()[0])}
     
     if error:
-       log.error("error publishin package {0} to Datacite, error {1}".format(package_id, error))
+       log.error("error publishing package {0} to Datacite, error {1}".format(package_id, error))
        return {'success': False, 'error': error}
     
     # change publication state
