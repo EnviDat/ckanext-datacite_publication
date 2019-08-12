@@ -72,6 +72,19 @@ def datacite_finish_publication_package(context, data_dict):
     return(_publish_to_datacite(data_dict, context, type='package'))
 
 @toolkit.side_effect_free
+def datacite_update_publication_package(context, data_dict):
+    '''Update the metadata for a dataset
+       sending it to datacite API
+       by a portal admin.
+    :param id: the ID of the dataset
+    :type id: string
+    :returns: the package doi
+    :rtype: string
+    '''
+    log.debug("logic: datacite_update_publication_package: {0}".format(data_dict.get('id')))
+    return(_update_in_datacite(data_dict, context, type='package'))
+
+@toolkit.side_effect_free
 def datacite_publish_resource(context, data_dict):
     '''Start the publication process for a resource
        including the DOI request.
@@ -272,7 +285,7 @@ def _finish_manually(data_dict, context, type='package'):
     
 def _publish_to_datacite(data_dict, context, type='package'):
     
-    log.debug('_publish_to_datacite: Publishing to dataite "{0}" ({1})'.format(data_dict['id'], data_dict.get('name','')))
+    log.debug('_publish_to_datacite: Publishing to datacite "{0}" ({1})'.format(data_dict['id'], data_dict.get('name','')))
     # a dataset id i s necessary
     try:
         id_or_name = data_dict['id']
@@ -328,6 +341,56 @@ def _publish_to_datacite(data_dict, context, type='package'):
     dataset_owner = dataset_dict.get('creator_user_id', '')
     datacite_finished_mail(dataset_owner, dataset_dict, context)
 
+    return {'success': True, 'error': None}
+
+def _update_in_datacite(data_dict, context, type='package'):
+    
+    log.debug('_update_in_datacite: Updating in datacite "{0}" ({1})'.format(data_dict['id'], data_dict.get('name','')))
+    # a dataset id i s necessary
+    try:
+        id_or_name = data_dict['id']
+    except KeyError:
+        raise toolkit.ValidationError({'id': 'missing id'})
+    dataset_dict = toolkit.get_action('package_show')(context, {'id': id_or_name})
+    
+    # state has to be approved
+    state = dataset_dict.get('publication_state', '')
+    if state != 'published':
+        raise toolkit.ValidationError({'publication_state': 'dataset needs to be in state "published" (in datacite)'})
+    
+    # DOI has to be already present
+    doi = dataset_dict.get('doi', '')
+    default_prefix = config.get('datacite_publication.doi_prefix', '10.xxxxx')    
+    allowed_prefixes = config.get('datacite_publication.custom_prefix', '').split(' ') + [ default_prefix ]
+    doi_prefix = doi.split('/')[0].strip()
+    
+    if (not doi) or (len(doi) <=0) or (doi_prefix not in allowed_prefixes) :
+        raise toolkit.ValidationError({'doi': 'dataset has no valid minted DOI [' + ', '.join(allowed_prefixes) + ']/*'})
+    
+    # Check authorization
+    package_id = dataset_dict.get('package_id', dataset_dict.get('id', id_or_name))
+    if not authz.is_authorized(
+            'package_update', context,
+            {'id': package_id}).get('success', False) or not helpers.datacite_publication_is_admin():
+        log.error('ERROR updating publication dataset in datacite, current user is not authorized: isAdmin = {0}'.format(helpers.datacite_publication_is_admin()))
+        raise toolkit.NotAuthorized({
+                'permissions': ['Not authorized to perform the dataset update to datacite (admin only).']})
+    
+    datacite_publisher = DatacitePublisher()
+    
+    try:
+        doi, error = datacite_publisher.publish(doi, pkg = dataset_dict, context = context, update = True )
+    except Exception as e:
+       log.error("exception updating package {0} in Datacite, error {1}".format(package_id, traceback.format_exc()))
+       return {'success': False, 'error': 'Exception when updating in DataCite: {0}'.format(e)}
+    except:
+       log.error("error updating package {0} in Datacite, error {1}".format(package_id, sys.exc_info()[0]))
+       return {'success': False, 'error': 'Unknown error when updating in DataCite: {0}'.format(sys.exc_info()[0])}
+    
+    if error:
+       log.error("error updating package {0} to Datacite, error {1}".format(package_id, error))
+       return {'success': False, 'error': error}
+    
     return {'success': True, 'error': None}
 
 def _get_username_from_context(context):

@@ -7,18 +7,11 @@
   
   {% if h.datacite_publication_is_admin() and h.check_access('package_update', {'id':pkg.id }) %}
       {# ADMIN #} 
-            {% if not pkg.publication_state or pkg.publication_state == 'none' or pkg.publication_state == 'published' %}
-            	{% if pkg.publication_state == 'published' %}
-                	<a class="btn btn-primary" href="" disabled title="DOI publication finished" onmouseover="" style="cursor: help;">
-                   	 	{{ _('Published') }}
-                    	<i class="fa fa-icon fa-globe"></i>
-                    </a>      
-				{% else %}
+            {% if not pkg.publication_state or pkg.publication_state == 'none' %}
 					  <a class="btn btn-default" href="{{ h.url_for('publish_package', package_id=pkg.name)}}" title="Click here to make the dataset public and request a DOI" onmouseover="" >
 						<i class="fa fa-icon fa-cloud-upload"></i>
 						{{ _('Publish') }}
 					  </a>
-				{% endif %}
             {% else %}
            		<div class="dropdown btn-group">
  				{% if pkg.publication_state == 'reserved' %}
@@ -37,7 +30,11 @@
 					<a class="btn btn-info dropdown-toggle" data-toggle="dropdown"  href="#">
 						<i class="fa fa-icon fa-check"></i>
 						{{ _('Approved') }}
-				{% else %}
+            	{% elif pkg.publication_state == 'published' %}
+                	<a class="btn btn-primary dropdown-toggle" data-toggle="dropdown" href="#"  title="DOI publication finished" onmouseover="" >
+                    	<i class="fa fa-icon fa-globe"></i>
+                   	 	{{ _('Published') }}
+                {% else %}
 					<!-- Unknown state, review code -->
 					<a class="btn btn-danger dropdown-toggle" data-toggle="dropdown"  href="#" disabled >
 						<i class="fa fa-icon fa-question-circle"></i>
@@ -46,7 +43,9 @@
 					<span class="caret"></span>
 					</a>  
 					<ul class="dropdown-menu">
-					{% if pkg.publication_state == 'approved' %}
+					{% if pkg.publication_state == 'published' %}
+						<li><a href="{{ h.url_for('update_publication_package', package_id=pkg.name)}}"><i class="fa fa-cloud-upload"></i> Update in Datacite </a></li>
+					{% elif pkg.publication_state == 'approved' %}
 						<li><a href="{{ h.url_for('finish_publication_package', package_id=pkg.name)}}"><i class="fa fa-cloud-upload"></i> Publish to Datacite </a></li>
 						<li><a href="{{ h.url_for('manual_finish_publication_package', package_id=pkg.name)}}"><i class="fa fa-user-plus"></i> Manually Published </a></li>
 				    {% else %}
