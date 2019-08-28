@@ -20,6 +20,12 @@ class Datacite_PublicationPlugin(plugins.SingletonPlugin):
     # IRoutes
     def before_map(self, map_):
         map_.connect(
+            'make_public_package',
+            '/dataset/{package_id}/make_public/datacite',
+            controller='ckanext.datacite_publication.controller:DatacitePublicationController',
+            action = 'make_public_package'
+        )
+        map_.connect(
             'publish_package',
             '/dataset/{package_id}/publish/datacite',
             controller='ckanext.datacite_publication.controller:DatacitePublicationController',
@@ -60,6 +66,8 @@ class Datacite_PublicationPlugin(plugins.SingletonPlugin):
     # IActions
     def get_actions(self):
         return {
+            'datacite_make_public_package':
+                ckanext.datacite_publication.logic.datacite_make_public_package,
             'datacite_publish_package':
                 ckanext.datacite_publication.logic.datacite_publish_package,
             'datacite_approve_publication_package':

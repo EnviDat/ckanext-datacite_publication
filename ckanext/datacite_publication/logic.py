@@ -23,6 +23,17 @@ APPROVAL_MESSAGE = 'Datacite publication APPROVED'
 FINISH_MESSAGE = 'Datacite publication FINISHED'
 
 @toolkit.side_effect_free
+def datacite_make_public_package(context, data_dict):
+    '''Makes the dataset public (without a DOI request)
+    :param id: the ID of the dataset
+    :type id: string
+    :returns: the package id
+    :rtype: string
+    '''
+    log.debug("logic: datacite_make_public_package: {0}".format(data_dict.get('id')))
+    return(_make_public(data_dict, context, type='package'))
+
+@toolkit.side_effect_free
 def datacite_publish_package(context, data_dict):
     '''Start the publication process for a dataset
        including the DOI request.
@@ -95,6 +106,35 @@ def datacite_publish_resource(context, data_dict):
     '''
 
     return(_publish(data_dict, context, type='resource'))
+    
+
+def _make_public(data_dict, context, type='package'):
+
+    try:
+        id_or_name = data_dict['id']
+    except KeyError:
+        raise toolkit.ValidationError({'id': 'missing id'})
+    
+    dataset_dict = toolkit.get_action('package_show')(context, {'id': id_or_name})
+    
+    # Check authorization
+    package_id = dataset_dict.get('package_id', dataset_dict.get('id', id_or_name))
+    if not authz.is_authorized(
+            'package_update', context,
+            {'id': package_id}).get('success', False):
+        raise toolkit.NotAuthorized({
+                'permissions': ['Not authorized to publish the dataset.']})
+    
+    # Check state
+    if dataset_dict.get('publication_state', False):
+        return {'success': False, 'error': 'Dataset publication state is not empty'}        
+    
+    # set as public
+    dataset_dict['private'] = False
+    toolkit.get_action('package_update')(context=context, data_dict=dataset_dict)
+
+    log.info("success making public package {0}".format(package_id))
+    return {'success': True, 'error': None}
 
 def _publish(data_dict, context, type='package'):
 
@@ -123,6 +163,10 @@ def _publish(data_dict, context, type='package'):
             return _publish_custom_by_admin(dataset_dict, package_id, ckan_user, context, type)
         else:
             return {'success': False, 'error': 'Dataset has already a DOI. Registering of custom DOI is currently not allowed'}
+
+    # Check state
+    if dataset_dict.get('publication_state', False):
+        return {'success': False, 'error': 'Dataset publication state should be empty to request a new DOI'}        
 
     # mint doi mint_doi(self, ckan_id, ckan_user, prefix_id = None, suffix = None, entity='package')
     minter_name = config.get('datacite_publication.minter', DEAFULT_MINTER)
