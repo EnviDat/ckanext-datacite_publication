@@ -1,0 +1,21 @@
+{% ckan_extends %}
+
+  {% block package_metadata_fields_visibility %}
+   	{% if h.datacite_publication_is_admin() %} {# or not data.get('publication_state', '')|length #}
+  		{{ super() }}
+	{% else %}
+		<div class="control-group form-group control-medium"  hidden="true">
+		  <label for="field-private" class="control-label"  hidden="true">{{ _('Visibility') }}</label>
+		  <div class="controls"  hidden="true">
+			<select id="field-private" name="private" class="form-control" hidden="true">
+			  {% for option in [('True', _('Private')), ('False', _('Public'))] %}
+			  <option value="{{ option[0] }}" {% if option[0] == data.private|trim %}selected="selected"{% endif %}>{{ option[1] }}</option>
+			  {% endfor %}
+			</select>
+		  </div>
+		</div>
+      {% endif %}
+  {% endblock %}
+
+
+  
