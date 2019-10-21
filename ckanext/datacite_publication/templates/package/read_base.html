@@ -67,8 +67,10 @@
 				</div>   
 	  		{% endif %}   
   {% else %}
+      {# Temporary disabled for owners #}
       {# OWNER #} 
-      {% if h.check_access('package_update', {'id':pkg.id }) %}
+      {% if False %}
+      {# % if h.check_access('package_update', {'id':pkg.id }) % #}
           {% if pkg.publication_state and pkg.publication_state != 'none' %}
             {% if pkg.publication_state == 'reserved' %}
                 <a class="btn btn-info" href="" disabled title="DOI has been reserved but not registered in DataCite" onmouseover="" style="cursor: help;">
