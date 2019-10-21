@@ -35,7 +35,7 @@ class DatacitePublisher(plugins.SingletonPlugin):
             log.debug("Publishing id = {0}, url = {1}".format(package_id, url))
         
         # get converted package
-        metadata_format = 'datacite_4'
+        metadata_format = 'datacite'
         
         try:
             converted_package = toolkit.get_action(
