@@ -20,6 +20,7 @@ class DatacitePublisher(plugins.SingletonPlugin):
         self.datacite_url = config.get('datacite_publication.datacite_url','')
         self.account_name = config.get('datacite_publication.account_name','')
         self.account_password = config.get('datacite_publication.account_password','')
+        self.url_prefix = config.get('datacite_publication.url_prefix','')
     
     def publish(self, doi, pkg = None, context = {}, *args, **kwargs):
                 
@@ -28,6 +29,9 @@ class DatacitePublisher(plugins.SingletonPlugin):
         # dataset data
         package_id = pkg['id']
         url = config.get('ckan.site_url','') + '/dataset/' + pkg.get('name', pkg['id'])
+        
+        if self.url_prefix:
+            url = self.url_prefix + pkg.get('name', pkg['id'])        
         
         if update_doi:
             log.debug("*** Updating id = {0}, url = {1}".format(package_id, url))
