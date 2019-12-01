@@ -192,7 +192,7 @@ def _publish(data_dict, context, type='package'):
        toolkit.get_action('package_update')(context=context, data_dict=dataset_dict)
        
        # notify admin and user
-       datacite_publication_mail_admin(ckan_user, dataset_dict)
+       datacite_publication_requested_mail(ckan_user, dataset_dict)
        
        log.info("success minting DOI for package {0}, doi {1}".format(package_id, doi))
        return {'success': True, 'error': None}
@@ -239,7 +239,7 @@ def _publish_custom_by_admin(dataset_dict, package_id, ckan_user, context, type=
        toolkit.get_action('package_update')(context=context, data_dict=dataset_dict)
        
        # notify admin and user
-       datacite_publication_mail_admin(ckan_user, dataset_dict)
+       datacite_publication_requested_mail(ckan_user, dataset_dict)
        
        log.info("success minting DOI for package {0}, doi {1}".format(package_id, doi))
        return {'success': True, 'error': None}
@@ -448,10 +448,10 @@ def _get_username_from_context(context):
     return user_name
 
 # send email to admin on publication request
-def datacite_publication_mail_admin(user_id, entity, user_email='', entity_type='package'):
+def datacite_publication_requested_mail(user_id, entity, user_email='', entity_type='package'):
 
     try:
-        log.debug('datacite_publication_mail_admin: Notifying request from "{0}" ({1})'.format(user_id, entity.get('name','')))
+        log.debug('datacite_publication_requested_mail: Notifying request from "{0}" ({1})'.format(user_id, entity.get('name','')))
 
         # Get admin data
         admin_name = _('CKAN System Administrator')
@@ -483,7 +483,7 @@ def datacite_publication_mail_admin(user_id, entity, user_email='', entity_type=
         body += "\n\n * Your DOI request is being processed by the EnviDat team. The DOI is reserved but it will not be valid until the registration process is finished. *"
         
     except Exception as e:
-        log.error(('datacite_publication_mail_admin: '
+        log.error(('datacite_publication_requested_mail: '
                      'Failed to send mail to admin from "{0}": {1}').format(user_id,e))
 
 # send email to user on publication approval
@@ -547,9 +547,9 @@ def datacite_approved_mail(user_id, entity, context, user_email='', entity_type=
             if maintainer_email and maintainer_email not in sent_mails:
                 # TODO: Temporary disabled this for testing
                 log.debug("skipping mail sending to {0}".format(maintainer_email))
-                #mailer.mail_recipient(maintainer_name, maintainer_email, subject, "\t ** COPY ** \n\n" + body)
-                #sent_mails += [maintainer_email]
-        
+                # mailer.mail_recipient(maintainer_name, maintainer_email, subject, "\t ** COPY ** \n\n" + body)
+                sent_mails += [maintainer_email]
+        log.debug("Publication finishing mail sent to: {0}".format(','.join(sent_mails)))
     except Exception as e:
         log.error(('datacite_approved_mail: '
                      'Failed to send mail to user "{0}": {1}, {2}').format(user_id,e, traceback.format_exc().splitlines()))
@@ -616,8 +616,8 @@ def datacite_finished_mail(user_id, entity, context, user_email='', entity_type=
                 # TODO: Temporary disabled this for testing
                 log.debug("skipping mail sending to {0}".format(maintainer_email))
                 #mailer.mail_recipient(maintainer_name, maintainer_email, subject, "\t ** COPY ** \n\n" + body)
-                #sent_mails += [maintainer_email]
-        
+                sent_mails += [maintainer_email]
+        log.debug("Publication finishing mail sent to: {0}".format(','.join(sent_mails)))
     except Exception as e:
         log.error(('datacite_finished_mail: '
                      'Failed to send mail to user "{0}": {1}, {2}').format(user_id,e, traceback.format_exc().splitlines()))
