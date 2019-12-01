@@ -468,10 +468,10 @@ def datacite_publication_requested_mail(user_id, entity, user_email='', entity_t
         user_email = user['email']
         user_name = user.get('display_name', user['name'])
 
-        body =  "Notifying publication request to {0} ({1}): \n".format(admin_name, admin_email)
-        body += "\t - User: {0} ({1})\n".format(user_name, user_email)
-        body += "\t - Entity: {0} ({1})\n".format(entity_name, entity_type)
-        body += "\t - URL: {0} \n".format(_get_entity_url(entity, entity_type=entity_type))
+        body =  u"Notifying publication request to {0} ({1}): \n".format(admin_name, admin_email)
+        body += u"\t - User: {0} ({1})\n".format(user_name, user_email)
+        body += u"\t - Entity: {0} ({1})\n".format(entity_name, entity_type)
+        body += u"\t - URL: {0} \n".format(_get_entity_url(entity, entity_type=entity_type))
         subject = _('Publication Request {0}').format(entity_name)
 
         # Send copy to admin
@@ -480,17 +480,17 @@ def datacite_publication_requested_mail(user_id, entity, user_email='', entity_t
         # Send copy to user
         if not user_email:
             raise mailer.MailerException('Missing user email')
-        body += "\n\n * Your DOI request is being processed by the EnviDat team. The DOI is reserved but it will not be valid until the registration process is finished. *"
+        body += u"\n\n * Your DOI request is being processed by the EnviDat team. The DOI is reserved but it will not be valid until the registration process is finished. *"
         
     except Exception as e:
-        log.error(('datacite_publication_requested_mail: '
-                     'Failed to send mail to admin from "{0}": {1}').format(user_id,e))
+        log.error((u'datacite_publication_requested_mail: '
+                     u'Failed to send mail to admin from "{0}": {1}').format(user_id,e))
 
 # send email to user on publication approval
 def datacite_approved_mail(user_id, entity, context, user_email='', entity_type='package'):
 
     try:
-        log.debug('datacite_approved_mail: Notifying approval for dataset {0}'.format(entity.get('name','')))
+        log.debug(u'datacite_approved_mail: Notifying approval for dataset {0}'.format(entity.get('name','')))
 
         # keep track of sent mails
         sent_mails = []
@@ -511,17 +511,17 @@ def datacite_approved_mail(user_id, entity, context, user_email='', entity_type=
         user_name = user.get('display_name', user['name'])
         
         # get the mail content
-        body =  "Notifying publication approval from {0} ({1}): \n".format(admin_name, admin_email)
-        body += "\t - User: {0} ({1})\n".format(user_name, user_email)
-        body += "\t - Entity: {0} ({1})\n".format(entity_name, entity_type)
-        body += "\t - URL: {0} \n".format(_get_entity_url(entity, entity_type=entity_type))
-        body += "\t - DOI: https://doi.org/{0} ".format(entity_doi)
+        body =  u"Notifying publication approval from {0} ({1}): \n".format(admin_name, admin_email)
+        body += u"\t - User: {0} ({1})\n".format(user_name, user_email)
+        body += u"\t - Entity: {0} ({1})\n".format(entity_name, entity_type)
+        body += u"\t - URL: {0} \n".format(_get_entity_url(entity, entity_type=entity_type))
+        body += u"\t - DOI: https://doi.org/{0} ".format(entity_doi)
         subject = _('Publication Approved {0}').format(entity_name)
 
         # Send mail to user who requested the publication
         user_request = _get_user_request(entity_id, context)
         if user_request:
-            log.debug('Requesting author was {0}'.format(user_request.get('display_name')))
+            log.debug(u'Requesting author was {0}'.format(user_request.get('display_name')))
             if user_request['email'] not in sent_mails:
                 mailer.mail_recipient(user_request.get('display_name', user_request['name']), user_request['email'], subject, body)
                 sent_mails += [user_request['email']]
@@ -579,17 +579,17 @@ def datacite_finished_mail(user_id, entity, context, user_email='', entity_type=
         user_name = user.get('display_name', user['name'])
         
         # get the mail content
-        body =  "Notifying publication finishing from {0} ({1}): \n".format(admin_name, admin_email)
-        body += "\t - User: {0} ({1})\n".format(user_name, user_email)
-        body += "\t - Entity: {0} ({1})\n".format(entity_name, entity_type)
-        body += "\t - URL: {0} \n".format(_get_entity_url(entity, entity_type=entity_type))
-        body += "\t - DOI: https://doi.org/{0} ".format(entity_doi)
+        body =  u"Notifying publication finishing from {0} ({1}): \n".format(admin_name, admin_email)
+        body += u"\t - User: {0} ({1})\n".format(user_name, user_email)
+        body += u"\t - Entity: {0} ({1})\n".format(entity_name, entity_type)
+        body += u"\t - URL: {0} \n".format(_get_entity_url(entity, entity_type=entity_type))
+        body += u"\t - DOI: https://doi.org/{0} ".format(entity_doi)
         subject = _('Publication Finished {0}').format(entity_name)
 
         # Send mail to user who requested the publication
         user_request = _get_user_request(entity_id, context)
         if user_request:
-            log.debug('Requesting author was {0}'.format(user_request.get('display_name')))
+            log.debug(u'Requesting author was {0}'.format(user_request.get('display_name')))
             if user_request['email'] not in sent_mails:
                 mailer.mail_recipient(user_request.get('display_name', user_request['name']), user_request['email'], subject, body)
                 sent_mails += [user_request['email']]
@@ -614,10 +614,10 @@ def datacite_finished_mail(user_id, entity, context, user_email='', entity_type=
             maintainer_name = maintainer_object.get("name", "Dataset Contact Point")
             if maintainer_email and maintainer_email not in sent_mails:
                 # TODO: Temporary disabled this for testing
-                log.debug("skipping mail sending to {0}".format(maintainer_email))
+                log.debug(u"skipping mail sending to {0}".format(maintainer_email))
                 #mailer.mail_recipient(maintainer_name, maintainer_email, subject, "\t ** COPY ** \n\n" + body)
                 sent_mails += [maintainer_email]
-        log.debug("Publication finishing mail sent to: {0}".format(','.join(sent_mails)))
+        log.debug(u"Publication finishing mail sent to: {0}".format(','.join(sent_mails)))
     except Exception as e:
         log.error(('datacite_finished_mail: '
                      'Failed to send mail to user "{0}": {1}, {2}').format(user_id,e, traceback.format_exc().splitlines()))
@@ -651,8 +651,8 @@ def _get_user_request(entity_id, context):
                 user_request = toolkit.get_action('user_show')(context, {'id': user_request_name})
                 return user_request
     except Exception as e:
-        log.error(('_get_user_request: '
-                     'Failed to find requester user for publication of "{0}": {1}, {2}')
+        log.error((u'_get_user_request: '
+                     u'Failed to find requester user for publication of "{0}": {1}, {2}')
                         .format(entity_id, e , '\n'.join(traceback.format_exc().splitlines())))
     return None
 
