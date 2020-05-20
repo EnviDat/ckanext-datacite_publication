@@ -160,11 +160,12 @@ GRANT SELECT ON TABLE public.doi_realisation TO ckan_default;
 GRANT INSERT, UPDATE ON TABLE public.doi_realisation TO ckan_default;
 GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO ckan_default;
 
-INSERT INTO public.doi_prefix(prefix_id, description) VALUES ('10.16904', 'WSL prefix');
-INSERT INTO public.doi_prefix(prefix_id, description) VALUES ('10.12345', 'test prefix');
+-- Edit the lines below to add prefixes and create the sequences
+-- INSERT INTO public.doi_prefix(prefix_id, description) VALUES ('10.16904', 'WSL prefix');
+-- INSERT INTO public.doi_prefix(prefix_id, description) VALUES ('10.12345', 'test prefix');
 
-INSERT INTO public.ckan_site VALUES (1, 'localhost', 'http://localhost:5000', 'local test instance');
+-- INSERT INTO public.ckan_site VALUES (1, 'localhost', 'http://localhost:5000', 'local test instance');
 
-SELECT public.create_doi_sequences()
+-- SELECT public.create_doi_sequences()
 
-INSERT INTO public.doi_realisation(prefix_id, ckan_id, ckan_name, site_id, metadata) VALUES ('10.12345', 'b5e52b1a-cc8f-46a6-ad94-2c309f6d7fe7', 'horse-breeds', 'localhost', 'pending');
+-- INSERT INTO public.doi_realisation(prefix_id, ckan_id, ckan_name, site_id, metadata) VALUES ('10.12345', 'b5e52b1a-cc8f-46a6-ad94-2c309f6d7fe7', 'horse-breeds', 'localhost', 'pending');
