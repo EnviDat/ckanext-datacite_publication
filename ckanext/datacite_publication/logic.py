@@ -643,10 +643,10 @@ def _get_user_info(user_id):
     
 def _get_user_request(entity_id, context):
     try:
-        revisions_list = toolkit.get_action('package_revision_list')(context, {'id': entity_id})
+        revisions_list = toolkit.get_action('package_activity_list')(context, {'id': entity_id})
         for revision in revisions_list:
-            revision_message = revision.get('message')
-            if revision_message.lower().find(REQUEST_MESSAGE.lower()) >=0:
+            revision_message = revision.get('message', '')
+            if revision_message.lower().find(REQUEST_MESSAGE.lower()) >= 0:
                 user_request_name = revision.get('author')
                 user_request = toolkit.get_action('user_show')(context, {'id': user_request_name})
                 return user_request

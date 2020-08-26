@@ -3,63 +3,70 @@ import ckan.plugins.toolkit as toolkit
 
 import ckanext.datacite_publication.logic
 import ckanext.datacite_publication.helpers as helpers
+import ckanext.datacite_publication.blueprints as blueprints
+
 
 class Datacite_PublicationPlugin(plugins.SingletonPlugin):
     plugins.implements(plugins.IConfigurer)
     plugins.implements(plugins.IActions)
     plugins.implements(plugins.ITemplateHelpers)
     plugins.implements(plugins.IRoutes, inherit=True)
+    plugins.implements(plugins.IBlueprint, inherit=True)
 
     # IConfigurer
-
     def update_config(self, config_):
         toolkit.add_template_directory(config_, 'templates')
         toolkit.add_public_directory(config_, 'public')
         toolkit.add_resource('fanstatic', 'datacite_publication')
 
+    # ITemplateHelpers
+    def get_helpers(self):
+        return {'datacite_publication_is_admin': helpers.datacite_publication_is_admin,
+                'datacite_publication_doi_is_editable': helpers.datacite_publication_doi_is_editable}
+
     # IRoutes
     def before_map(self, map_):
         map_.connect(
-            'make_public_package',
+            # 'make_public_package',
             '/dataset/{package_id}/make_public/datacite',
             controller='ckanext.datacite_publication.controller:DatacitePublicationController',
-            action = 'make_public_package'
+            action='make_public_package'
         )
         map_.connect(
-            'publish_package',
+            # 'publish_package',
             '/dataset/{package_id}/publish/datacite',
             controller='ckanext.datacite_publication.controller:DatacitePublicationController',
-            action = 'publish_package'
+            action='publish_package'
         )
         map_.connect(
-            'approve_publication_package',
+            # 'approve_publication_package',
             '/dataset/{package_id}/approve_publication/datacite',
             controller='ckanext.datacite_publication.controller:DatacitePublicationController',
-            action = 'approve_publication_package'
+            action='approve_publication_package'
         )
         map_.connect(
-            'manual_finish_publication_package',
+            # 'manual_finish_publication_package',
             '/dataset/{package_id}/manual_finish_publication/datacite',
             controller='ckanext.datacite_publication.controller:DatacitePublicationController',
-            action = 'manual_finish_publication_package'
+            action='manual_finish_publication_package'
         )
         map_.connect(
-            'finish_publication_package',
+            # 'finish_publication_package',
             '/dataset/{package_id}/finish_publication_package/datacite',
             controller='ckanext.datacite_publication.controller:DatacitePublicationController',
-            action = 'finish_publication_package'
+            action='finish_publication_package'
         )
         map_.connect(
-            'update_publication_package',
+            # 'update_publication_package',
             '/dataset/{package_id}/update_publication_package/datacite',
             controller='ckanext.datacite_publication.controller:DatacitePublicationController',
-            action = 'update_publication_package'
+            action='update_publication_package'
         )
         map_.connect(
-            'publish_resource',
-            '/dataset/{package_id}/resource/{resource_id}/publish/datacite',
+            # 'publish_resource',
+            u'/dataset/{package_id}/resource/{resource_id}/publish/datacite',
             controller='ckanext.datacite_publication.controller:DatacitePublicationController',
-            action = 'publish_resource'
+            action='publish_resource'
         )
         return map_
 
@@ -80,9 +87,8 @@ class Datacite_PublicationPlugin(plugins.SingletonPlugin):
                 ckanext.datacite_publication.logic.datacite_update_publication_package,
             'datacite_publish_resource':
                 ckanext.datacite_publication.logic.datacite_publish_resource
-             }
+        }
 
-    # ITemplateHelpers
-    def get_helpers(self):
-        return { 'datacite_publication_is_admin': helpers.datacite_publication_is_admin,
-                 'datacite_publication_doi_is_editable': helpers.datacite_publication_doi_is_editable }
+    def get_blueprint(self):
+        return blueprints.get_blueprints(self.name, self.__module__)
+
