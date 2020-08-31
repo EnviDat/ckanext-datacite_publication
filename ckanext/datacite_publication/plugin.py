@@ -25,50 +25,50 @@ class Datacite_PublicationPlugin(plugins.SingletonPlugin):
                 'datacite_publication_doi_is_editable': helpers.datacite_publication_doi_is_editable}
 
     # IRoutes
-    def before_map(self, map_):
-        map_.connect(
-            # 'make_public_package',
-            '/dataset/{package_id}/make_public/datacite',
-            controller='ckanext.datacite_publication.controller:DatacitePublicationController',
-            action='make_public_package'
-        )
-        map_.connect(
-            # 'publish_package',
-            '/dataset/{package_id}/publish/datacite',
-            controller='ckanext.datacite_publication.controller:DatacitePublicationController',
-            action='publish_package'
-        )
-        map_.connect(
-            # 'approve_publication_package',
-            '/dataset/{package_id}/approve_publication/datacite',
-            controller='ckanext.datacite_publication.controller:DatacitePublicationController',
-            action='approve_publication_package'
-        )
-        map_.connect(
-            # 'manual_finish_publication_package',
-            '/dataset/{package_id}/manual_finish_publication/datacite',
-            controller='ckanext.datacite_publication.controller:DatacitePublicationController',
-            action='manual_finish_publication_package'
-        )
-        map_.connect(
-            # 'finish_publication_package',
-            '/dataset/{package_id}/finish_publication_package/datacite',
-            controller='ckanext.datacite_publication.controller:DatacitePublicationController',
-            action='finish_publication_package'
-        )
-        map_.connect(
-            # 'update_publication_package',
-            '/dataset/{package_id}/update_publication_package/datacite',
-            controller='ckanext.datacite_publication.controller:DatacitePublicationController',
-            action='update_publication_package'
-        )
-        map_.connect(
-            # 'publish_resource',
-            u'/dataset/{package_id}/resource/{resource_id}/publish/datacite',
-            controller='ckanext.datacite_publication.controller:DatacitePublicationController',
-            action='publish_resource'
-        )
-        return map_
+    # def before_map(self, map_):
+    #     map_.connect(
+    #         # 'make_public_package',
+    #         '/dataset/{package_id}/make_public/datacite',
+    #         controller='ckanext.datacite_publication.controller:DatacitePublicationController',
+    #         action='make_public_package'
+    #     )
+    #     map_.connect(
+    #         # 'publish_package',
+    #         '/dataset/{package_id}/publish/datacite',
+    #         controller='ckanext.datacite_publication.controller:DatacitePublicationController',
+    #         action='publish_package'
+    #     )
+    #     map_.connect(
+    #         # 'approve_publication_package',
+    #         '/dataset/{package_id}/approve_publication/datacite',
+    #         controller='ckanext.datacite_publication.controller:DatacitePublicationController',
+    #         action='approve_publication_package'
+    #     )
+    #     map_.connect(
+    #         # 'manual_finish_publication_package',
+    #         '/dataset/{package_id}/manual_finish_publication/datacite',
+    #         controller='ckanext.datacite_publication.controller:DatacitePublicationController',
+    #         action='manual_finish_publication_package'
+    #     )
+    #     map_.connect(
+    #         # 'finish_publication_package',
+    #         '/dataset/{package_id}/finish_publication_package/datacite',
+    #         controller='ckanext.datacite_publication.controller:DatacitePublicationController',
+    #         action='finish_publication_package'
+    #     )
+    #     map_.connect(
+    #         # 'update_publication_package',
+    #         '/dataset/{package_id}/update_publication_package/datacite',
+    #         controller='ckanext.datacite_publication.controller:DatacitePublicationController',
+    #         action='update_publication_package'
+    #     )
+    #     map_.connect(
+    #         # 'publish_resource',
+    #         u'/dataset/{package_id}/resource/{resource_id}/publish/datacite',
+    #         controller='ckanext.datacite_publication.controller:DatacitePublicationController',
+    #         action='publish_resource'
+    #     )
+    #     return map_
 
     # IActions
     def get_actions(self):
