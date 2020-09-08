@@ -17,7 +17,7 @@ class Datacite_PublicationPlugin(plugins.SingletonPlugin):
     def update_config(self, config_):
         toolkit.add_template_directory(config_, 'templates')
         toolkit.add_public_directory(config_, 'public')
-        toolkit.add_resource('fanstatic', 'datacite_publication')
+        # toolkit.add_resource('fanstatic', 'datacite_publication')
 
     # ITemplateHelpers
     def get_helpers(self):

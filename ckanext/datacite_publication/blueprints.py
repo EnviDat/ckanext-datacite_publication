@@ -1,7 +1,7 @@
 from ckan import model
 import ckan.plugins.toolkit as toolkit
 import ckan.logic
-
+from ckan.common import g
 import ckanext.datacite_publication.logic as logic
 from flask import Blueprint
 
@@ -71,7 +71,7 @@ def _get_context():
     site_user = ckan.logic.get_action(u"get_site_user")({u"ignore_auth": True}, {})
     log.debug("blueprints._get_context USER = {0}".format(site_user))
     return {u"model": model, u"session": model.Session,
-            u"user": site_user[u"name"],
+            u"user": g.user,
             u"ignore_auth": False}
 
 
