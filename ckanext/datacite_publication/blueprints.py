@@ -1,18 +1,15 @@
 from ckan import model
 import ckan.plugins.toolkit as toolkit
-import ckan.logic
 from ckan.common import g
-import ckanext.datacite_publication.logic as logic
-from flask import Blueprint
-
 import ckan.lib.base as base
 import ckan.lib.helpers as h
 
-render = base.render
+from flask import Blueprint, request
 
 from logging import getLogger
 
 log = getLogger(__name__)
+render = base.render
 
 
 def get_blueprints(name, module):
@@ -68,8 +65,6 @@ def get_blueprints(name, module):
 
 
 def _get_context():
-    site_user = ckan.logic.get_action(u"get_site_user")({u"ignore_auth": True}, {})
-    log.debug("blueprints._get_context USER = {0}".format(site_user))
     return {u"model": model, u"session": model.Session,
             u"user": g.user,
             u"ignore_auth": False}
@@ -123,7 +118,7 @@ def publish_package(id):
                                                                     'Internal Exception, please contact the portal '
                                                                     'admin.')
         h.flash_error(error_message)
-        # toolkit.abort(500, error_message)
+
     return toolkit.redirect_to(controller='dataset', action='read',
                                id=id)
 
@@ -149,8 +144,8 @@ def approve_publication_package(id):
     if result.get('success', True):
         h.flash_notice('DOI publication approved.')
     else:
-        error_message = 'Error approving dataset publication: \n' + result.get('error',
-                                                                               'Internal Exception, please contact the portal admin.')
+        error_message = 'Error approving dataset publication: \n' + result.get('error', 'Internal Exception, please '
+                                                                                        'contact the portal admin.')
         h.flash_error(error_message)
         # toolkit.abort(500, error_message)
     return toolkit.redirect_to(controller='dataset', action='read',
@@ -158,8 +153,8 @@ def approve_publication_package(id):
 
 
 def manual_finish_publication_package(id):
-    '''Finish manually the publication process for a dataset by the admin.
-    '''
+    """Finish manually the publication process for a dataset by the admin.
+    """
     context = _get_context()
 
     log.debug("controller: manual_finish_publication_package: {0}".format(id))
@@ -190,8 +185,8 @@ def manual_finish_publication_package(id):
 
 
 def finish_publication_package(id):
-    '''Finish the publication process for a dataset by the admin through the datacite API.
-    '''
+    """Finish the publication process for a dataset by the admin through the datacite API.
+    """
     context = _get_context()
 
     log.debug("controller: finish_publication_package: {0}".format(id))
@@ -221,8 +216,8 @@ def finish_publication_package(id):
 
 
 def update_publication_package(id):
-    '''Update the metadata for a dataset by the admin through the datacite API.
-    '''
+    """Update the metadata for a dataset by the admin through the datacite API.
+    """
     context = _get_context()
 
     log.debug("controller: update_publication_package: {0}".format(id))
@@ -252,8 +247,8 @@ def update_publication_package(id):
 
 
 def publish_resource(id):
-    '''Start publication process for a resource.
-    '''
+    """Start publication process for a resource.
+    """
 
     context = _get_context()
 
