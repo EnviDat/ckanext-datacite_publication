@@ -114,7 +114,7 @@ def datacite_publish_resource(context, data_dict):
     :rtype: string
     '''
 
-    return (_publish(data_dict, context, type='resource'))
+    return (_publish_resource(data_dict, context))
 
 
 def _make_public(data_dict, context, type='package'):
@@ -217,6 +217,7 @@ def _publish(data_dict, context, type='package'):
 
 
 def _publish_custom_by_admin(dataset_dict, package_id, ckan_user, context, type='package'):
+
     custom_doi = dataset_dict['doi']
     custom_prefix = custom_doi.split('/')[0].strip()
     try:
@@ -477,6 +478,70 @@ def _update_in_datacite(data_dict, context, type='package'):
 
     return {'success': True, 'error': None}
 
+
+def _publish_resource(data_dict, context):
+
+    # validate the id and get the resource data
+    try:
+        id = data_dict['id']
+    except KeyError:
+        raise toolkit.ValidationError({'id': 'missing id'})
+    resource_dict = toolkit.get_action('resource_show')(context, {'id': id})
+
+    # Check authorization
+    ckan_user = _get_username_from_context(context)
+    if not helpers.datacite_publication_is_admin(ckan_user):
+        raise toolkit.NotAuthorized({
+            'permissions': ['Not authorized to publish the resource (admins only).']})
+
+    # state has to be not yet published
+    state = resource_dict.get('publication_state', '')
+    if state == 'published':
+        raise toolkit.ValidationError({'publication_state': 'resource is already in state "published"'})
+
+    # DOI has to be already present and valid
+    custom_doi = resource_dict.get('doi', '')
+    if (not custom_doi) or (len(custom_doi) <= 0):
+        log.error('_publish_resource: resource has no minted DOI')
+        return {'success': False, 'error': 'Custom DOI not valid: empty'}
+
+    default_prefix = config.get('datacite_publication.doi_prefix', '')
+    allowed_prefixes = config.get('datacite_publication.custom_prefix', '').split(' ') + [default_prefix]
+    custom_prefix = custom_doi.split('/')[0].strip()
+    if custom_prefix not in allowed_prefixes:
+        log.error('_publish_resource: resource has no valid minted DOI [' + ', '.join(allowed_prefixes) + ']/*')
+        return {'success': False, 'error': 'Custom DOI not valid: prefix not allowed'}
+
+    custom_suffix = custom_doi.split('/')[1].strip()
+    if (not custom_suffix) or (len(custom_suffix) <= 0):
+        log.error('_publish_resource: resource has an empty DOI suffix')
+        return {'success': False, 'error': 'Custom DOI not valid: suffix empty'}
+
+    log.info("publishing CUSTOM resource DOI by an Admin {0}/{1}, allowed: {2}".format(custom_prefix, custom_suffix,
+                                                                                       allowed_prefixes))
+
+    # Mint custom DOI
+    minter_name = config.get('datacite_publication.minter', DEAFULT_MINTER)
+    package_name, class_name = minter_name.rsplit('.', 1)
+    module = importlib.import_module(package_name)
+    minter_class = getattr(module, class_name)
+    minter = minter_class()
+
+    doi, error = minter.mint(custom_prefix, pkg=resource_dict, user=ckan_user, suffix=custom_suffix, entity='resource')
+    log.debug("minter got doi={0}, error={1}".format(doi, error))
+
+    if error:
+        log.error("error minting DOI for resource {0}, error{1}".format(id, error))
+        return {'success': False, 'error': error.split('DETAIL')[0]}
+
+    # # update dataset publication state
+    # resource_dict['publication_state'] = 'published'
+    #
+    # # save activity
+    # _add_activity(dataset_dict, REQUEST_MESSAGE, context)
+
+    log.info("success minting DOI for resource {0}, doi {1}".format(id, doi))
+    return {'success': True, 'error': None}
 
 def _get_username_from_context(context):
     auth_user_obj = context.get('auth_user_obj', None)

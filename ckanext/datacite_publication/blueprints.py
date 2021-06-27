@@ -56,7 +56,7 @@ def get_blueprints(name, module):
     )
     blueprint.add_url_rule(
         # 'publish_resource',
-        u'/dataset/<id>/resource/{resource_id}/publish/datacite',
+        u'/dataset/<dataset_id>/resource/<id>/publish/datacite',
         u'publish_resource',
         publish_resource
     )
@@ -246,24 +246,32 @@ def update_publication_package(id):
                                id=id)
 
 
-def publish_resource(id):
-    """Start publication process for a resource.
+def publish_resource(dataset_id, id):
+    """Publish a resource with a custom DOI by an admin (manually minted).
     """
-
     context = _get_context()
 
-    r = toolkit.response
-    r.content_disposition = 'attachment; filename=' + id + '_DOI.txt'
+    log.debug("controller: publish_resource: ({0}) {1}".format(dataset_id, id))
 
     try:
-        published_resource = toolkit.get_action(
+        result = toolkit.get_action(
             'datacite_publish_resource')(
             context,
             {'id': id}
         )
     except toolkit.ObjectNotFound:
-        toolkit.abort(404, 'Dataset not found')
+        toolkit.abort(404, 'Dataset/resource not found')
     except toolkit.NotAuthorized:
         toolkit.abort(403, 'Not authorized')
+    except toolkit.ValidationError:
+        toolkit.abort(400, 'Validation error')
 
-    return published_resource
+    if result.get('success', True):
+        h.flash_notice('DOI publication finished.')
+    else:
+        error_message = 'Error finishing resource publication: \n' + result.get('error',
+                                                                               'Internal Exception, please contact the portal admin.')
+        h.flash_error(error_message)
+
+    return toolkit.redirect_to(controller='resource', action='read',
+                               id=dataset_id, resource_id=id)

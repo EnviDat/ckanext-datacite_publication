@@ -103,14 +103,15 @@ class DataciteIndexDOI(DatacitePublicationMinter):
         # user
         ckan_user = kwargs.get('user', 'undefined')
         suffix = kwargs.get('suffix', None)
+        entity_type = kwargs.get('entity', 'package')
 
-        return self.mint_doi(ckan_id=pkg.get('id', "None"), ckan_user=ckan_user, ckan_name=pkg.get('name', "None"), prefix=prefix, suffix=suffix, metadata=pkg_metadata)
+        return self.mint_doi(ckan_id=pkg.get('id', "None"), ckan_user=ckan_user, ckan_name=pkg.get('name', "None"), prefix=prefix, suffix=suffix, metadata=pkg_metadata, entity_type=entity_type)
 
     def mint_doi(self, ckan_id, ckan_user, ckan_name, prefix = None, suffix = None, metadata = "{}", entity_type='package'):
 
         doi_realisation = self.meta.tables['doi_realisation']
 
-        log.debug("mint_doi doi = {0}/{1}, ckan_id = {2}, entity_type = {3}, site_id = '{4}'".format(prefix, suffix, ckan_id, ckan_user,  entity_type, self.site_id))
+        log.debug("mint_doi doi = {0}/{1}, ckan_id = {2}, ckan_user= {3}, entity_type = {4}, site_id = '{5}'".format(prefix, suffix, ckan_id, ckan_user,  entity_type, self.site_id))
 
         # check if already exists
         prefix_id = self.prefix
@@ -121,28 +122,33 @@ class DataciteIndexDOI(DatacitePublicationMinter):
             if self.is_doi_existing(prefix_id, suffix):
                 error = "ERROR minting DOI: Already exists"
                 log.error(error)
-                return (None, error)
+                return None, error
 
         # check if ckan_id already registered
-        has_doi,existing_doi = self.is_dataset_published(ckan_id, entity_type)
+        has_doi, existing_doi = self.is_dataset_published(ckan_id, entity_type)
         if has_doi:
             error = "ERROR minting DOI: Dataset already published, DOI: " + existing_doi
-            return (None, error)
+            return None, error
 
         # insert row
         try:
             if suffix:
-                mint_insert = doi_realisation.insert().values(prefix_id=prefix_id, suffix_id=suffix, ckan_id=ckan_id, ckan_name=ckan_name, ckan_user=ckan_user, site_id=self.site_id, metadata = metadata)
+                mint_insert = doi_realisation.insert().values(prefix_id=prefix_id, suffix_id=suffix, ckan_id=ckan_id,
+                                                              ckan_name=ckan_name, ckan_user=ckan_user,
+                                                              site_id=self.site_id, metadata=metadata,
+                                                              ckan_entity=entity_type)
             else:
-                mint_insert = doi_realisation.insert().values(prefix_id=prefix_id, ckan_id=ckan_id, ckan_name=ckan_name, ckan_user=ckan_user, site_id=self.site_id, metadata = metadata)
+                mint_insert = doi_realisation.insert().values(prefix_id=prefix_id, ckan_id=ckan_id, ckan_name=ckan_name,
+                                                              ckan_user=ckan_user, site_id=self.site_id,
+                                                              metadata=metadata, ckan_entity=entity_type)
         
             log.debug(mint_insert.compile().params)
             result = self.con.execute(mint_insert)
             inserted_primary_key = result.inserted_primary_key[0]
                 
             clause = sqlalchemy.select([doi_realisation.c.prefix_id,
-                                    doi_realisation.c.suffix_id]
-                                   ).where(doi_realisation.c.doi_pk == inserted_primary_key)
+                                       doi_realisation.c.suffix_id]
+                                       ).where(doi_realisation.c.doi_pk == inserted_primary_key)
         
             results = self.con.execute(clause).fetchall()
         except Exception as e:
