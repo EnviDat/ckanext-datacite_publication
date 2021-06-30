@@ -114,7 +114,7 @@ def datacite_publish_resource(context, data_dict):
     :rtype: string
     '''
 
-    return (_publish_resource(data_dict, context))
+    return _publish_resource(data_dict, context)
 
 
 def _make_public(data_dict, context, type='package'):
@@ -488,6 +488,9 @@ def _publish_resource(data_dict, context):
         raise toolkit.ValidationError({'id': 'missing id'})
     resource_dict = toolkit.get_action('resource_show')(context, {'id': id})
 
+    package_id = data_dict.get('package_id')
+    package_dict = toolkit.get_action('package_show')(context, {'id': package_id})
+
     # Check authorization
     ckan_user = _get_username_from_context(context)
     if not helpers.datacite_publication_is_admin(ckan_user):
@@ -497,7 +500,7 @@ def _publish_resource(data_dict, context):
     # state has to be not yet published
     state = resource_dict.get('publication_state', '')
     if state == 'published':
-        raise toolkit.ValidationError({'publication_state': 'resource is already in state "published"'})
+        return {'success': False, 'error': 'Resource is already in state "published"'}
 
     # DOI has to be already present and valid
     custom_doi = resource_dict.get('doi', '')
@@ -533,15 +536,31 @@ def _publish_resource(data_dict, context):
     if error:
         log.error("error minting DOI for resource {0}, error{1}".format(id, error))
         return {'success': False, 'error': error.split('DETAIL')[0]}
+    log.info("success saving custom minted DOI for resource {0}, doi {1}".format(id, doi))
 
-    # # update dataset publication state
-    # resource_dict['publication_state'] = 'published'
-    #
-    # # save activity
-    # _add_activity(dataset_dict, REQUEST_MESSAGE, context)
+    # Publish to DataCite
+    datacite_publisher = DatacitePublisher()
 
-    log.info("success minting DOI for resource {0}, doi {1}".format(id, doi))
+    try:
+        doi, error = datacite_publisher.publish_resource(doi, resource=resource_dict, package=package_dict, context=context)
+    except Exception as e:
+        log.error("exception publishing resource {0} to Datacite, error {1}".format(id, traceback.format_exc()))
+        return {'success': False, 'error': 'Exception when publishing to DataCite: {0}'.format(e)}
+    except:
+        log.error("error publishing resource {0} to Datacite, error {1}".format(id, sys.exc_info()[0]))
+        return {'success': False, 'error': 'Unknown error when publishing to DataCite: {0}'.format(sys.exc_info()[0])}
+
+    if error:
+        log.error("error publishing resource {0} to Datacite, error {1}".format(id, error))
+        return {'success': False, 'error': error}
+
+    # update dataset publication state
+    resource_patch = {'id': id, 'publication_state': 'published'}
+    resource_patched = toolkit.get_action('resource_patch')(context, resource_patch)
+    log.debug("updated resource publication_state: {0}".format(resource_patched.get('publication_state')))
+
     return {'success': True, 'error': None}
+
 
 def _get_username_from_context(context):
     auth_user_obj = context.get('auth_user_obj', None)

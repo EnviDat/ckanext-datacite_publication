@@ -257,7 +257,7 @@ def publish_resource(dataset_id, id):
         result = toolkit.get_action(
             'datacite_publish_resource')(
             context,
-            {'id': id}
+            {'id': id, 'package_id': dataset_id}
         )
     except toolkit.ObjectNotFound:
         toolkit.abort(404, 'Dataset/resource not found')
@@ -269,8 +269,9 @@ def publish_resource(dataset_id, id):
     if result.get('success', True):
         h.flash_notice('DOI publication finished.')
     else:
-        error_message = 'Error finishing resource publication: \n' + result.get('error',
-                                                                               'Internal Exception, please contact the portal admin.')
+        error_message = 'Error publishing resource: \n' + result.get('error',
+                                                                     'Internal Exception, please contact'
+                                                                     ' the portal admin.')
         h.flash_error(error_message)
 
     return toolkit.redirect_to(controller='resource', action='read',
