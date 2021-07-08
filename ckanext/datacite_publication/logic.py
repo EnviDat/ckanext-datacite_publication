@@ -108,10 +108,6 @@ def datacite_update_publication_package(context, data_dict):
 def datacite_publish_resource(context, data_dict):
     '''Start the publication process for a resource
        including the DOI request.
-    :param id: the ID of the resource
-    :type id: string
-    :returns: the resource doi
-    :rtype: string
     '''
 
     return _publish_resource(data_dict, context)
@@ -497,10 +493,18 @@ def _publish_resource(data_dict, context):
         raise toolkit.NotAuthorized({
             'permissions': ['Not authorized to publish the resource (admins only).']})
 
-    # state has to be not yet published
+    # check if it is an update
+    update = data_dict.get('update', False)
+    log.debug('_publish_resource: *UPDATE* = {0}'.format(update))
+
+    # state to publish has to be not yet published
     state = resource_dict.get('publication_state', '')
-    if state == 'published':
+    if not update and state == 'published':
         return {'success': False, 'error': 'Resource is already in state "published"'}
+
+    # state to update has to be not published
+    if update and state != 'published':
+        return {'success': False, 'error': 'Resource is should be in state "published" for updating'}
 
     # DOI has to be already present and valid
     custom_doi = resource_dict.get('doi', '')
@@ -520,29 +524,38 @@ def _publish_resource(data_dict, context):
         log.error('_publish_resource: resource has an empty DOI suffix')
         return {'success': False, 'error': 'Custom DOI not valid: suffix empty'}
 
-    log.info("publishing CUSTOM resource DOI by an Admin {0}/{1}, allowed: {2}".format(custom_prefix, custom_suffix,
-                                                                                       allowed_prefixes))
+    if update:
+        log.info("updating CUSTOM resource DOI by an Admin {0}/{1}, allowed: {2}".format(custom_prefix, custom_suffix,
+                                                                                         allowed_prefixes))
+    else:
+        log.info("publishing CUSTOM resource DOI by an Admin {0}/{1}, allowed: {2}".format(custom_prefix, custom_suffix,
+                                                                                           allowed_prefixes))
 
-    # Mint custom DOI
-    minter_name = config.get('datacite_publication.minter', DEAFULT_MINTER)
-    package_name, class_name = minter_name.rsplit('.', 1)
-    module = importlib.import_module(package_name)
-    minter_class = getattr(module, class_name)
-    minter = minter_class()
+    if update:
+        doi = custom_doi
+    else:
+        # Mint custom DOI
+        minter_name = config.get('datacite_publication.minter', DEAFULT_MINTER)
+        package_name, class_name = minter_name.rsplit('.', 1)
+        module = importlib.import_module(package_name)
+        minter_class = getattr(module, class_name)
+        minter = minter_class()
 
-    doi, error = minter.mint(custom_prefix, pkg=resource_dict, user=ckan_user, suffix=custom_suffix, entity='resource')
-    log.debug("minter got doi={0}, error={1}".format(doi, error))
+        doi, error = minter.mint(custom_prefix, pkg=resource_dict, user=ckan_user,
+                                 suffix=custom_suffix, entity='resource')
+        log.debug("minter got doi={0}, error={1}".format(doi, error))
 
-    if error:
-        log.error("error minting DOI for resource {0}, error{1}".format(id, error))
-        return {'success': False, 'error': error.split('DETAIL')[0]}
-    log.info("success saving custom minted DOI for resource {0}, doi {1}".format(id, doi))
+        if error:
+            log.error("error minting DOI for resource {0}, error{1}".format(id, error))
+            return {'success': False, 'error': error.split('DETAIL')[0]}
+        log.info("success saving custom minted DOI for resource {0}, doi {1}".format(id, doi))
 
     # Publish to DataCite
     datacite_publisher = DatacitePublisher()
 
     try:
-        doi, error = datacite_publisher.publish_resource(doi, resource=resource_dict, package=package_dict, context=context)
+        doi, error = datacite_publisher.publish_resource(doi, resource=resource_dict, package=package_dict,
+                                                         context=context, update=update)
     except Exception as e:
         log.error("exception publishing resource {0} to Datacite, error {1}".format(id, traceback.format_exc()))
         return {'success': False, 'error': 'Exception when publishing to DataCite: {0}'.format(e)}
@@ -554,10 +567,10 @@ def _publish_resource(data_dict, context):
         log.error("error publishing resource {0} to Datacite, error {1}".format(id, error))
         return {'success': False, 'error': error}
 
-    # update dataset publication state
-    resource_patch = {'id': id, 'publication_state': 'published'}
-    resource_patched = toolkit.get_action('resource_patch')(context, resource_patch)
-    log.debug("updated resource publication_state: {0}".format(resource_patched.get('publication_state')))
+    if not update:
+        # update dataset publication state
+        resource_patch = {'id': id, 'publication_state': 'published'}
+        resource_patched = toolkit.get_action('resource_patch')(context, resource_patch)
 
     return {'success': True, 'error': None}
 

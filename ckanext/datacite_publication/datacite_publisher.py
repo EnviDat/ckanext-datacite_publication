@@ -125,6 +125,9 @@ class DatacitePublisher(plugins.SingletonPlugin):
         # resource data
         id = resource.get('id')
 
+        # update
+        update_doi = kwargs.get('update', False)
+
         # dataset data
         package_id = package.get('name', package['id'])
         url = config.get('ckan.site_url', '') + url_for('dataset_resource.read', id=package_id, resource_id=id)
@@ -177,7 +180,10 @@ class DatacitePublisher(plugins.SingletonPlugin):
         data['id'] = doi
         data['type'] = 'dois'
         data['attributes'] = collections.OrderedDict()
-        data['attributes']['event'] = "publish"
+        if update_doi:
+            data['attributes']['event'] = ""
+        else:
+            data['attributes']['event'] = "publish"
         data['attributes']['doi'] = doi
         data['attributes']['url'] = url
         data['attributes']['xml'] = xml_encoded.decode()
@@ -187,18 +193,27 @@ class DatacitePublisher(plugins.SingletonPlugin):
         # log.debug(args_json)
 
         datacite_url_endpoint = self.datacite_url
+        if update_doi:
+            datacite_url_endpoint = self.datacite_url + '/' + doi
         log.debug(" REST request send to URL: {0}".format(datacite_url_endpoint))
 
-        r = requests.post(datacite_url_endpoint, headers=headers, auth=auth, data=args_json)
+        if update_doi:
+            r = requests.put(datacite_url_endpoint, headers=headers, auth=auth, data=args_json)
+        else:
+            r = requests.post(datacite_url_endpoint, headers=headers, auth=auth, data=args_json)
 
-        print(r.status_code)
-        print(r.json())
+        # print(r.status_code)
+        # print(r.json())
 
         if r.status_code == 201 or r.status_code == 200:
             published_doi = r.json().get('data').get('id')
             return published_doi, None
         else:
-            return None, 'Error publishing to DataCite: HTTP Code: {0}, error: {1}'.format(r.status_code, r.json())
+            if update_doi:
+                return None, 'Error updating resource in DataCite: HTTP Code: {0}, error: {1}'.format(r.status_code, r.json())
+            else:
+                return None, 'Error publishing resource to DataCite: HTTP Code: {0}, error: {1}'.format(r.status_code, r.json())
+
 
     def __repr__(self):
         return str(self)

@@ -253,11 +253,13 @@ def publish_resource(dataset_id, id):
 
     log.debug("controller: publish_resource: ({0}) {1}".format(dataset_id, id))
 
+    update = request.args.get('update', 'false').lower() == 'true'
+
     try:
         result = toolkit.get_action(
             'datacite_publish_resource')(
             context,
-            {'id': id, 'package_id': dataset_id}
+            {'id': id, 'package_id': dataset_id, 'update': update}
         )
     except toolkit.ObjectNotFound:
         toolkit.abort(404, 'Dataset/resource not found')
@@ -267,7 +269,10 @@ def publish_resource(dataset_id, id):
         toolkit.abort(400, 'Validation error')
 
     if result.get('success', True):
-        h.flash_notice('DOI publication finished.')
+        if update:
+            h.flash_notice('DOI publication update finished.')
+        else:
+            h.flash_notice('DOI publication finished.')
     else:
         error_message = 'Error publishing resource: \n' + result.get('error',
                                                                      'Internal Exception, please contact'
