@@ -40,7 +40,7 @@ class DatacitePublisher(plugins.SingletonPlugin):
                     if alt_id.get('alternateIdentifierType') == 'URL':
                         url = alt_id.get('alternateIdentifier')
                         ids += [url.rsplit('/')[-1]]
-                log.debug("Found published ids = [{0}]".format(', '.join(ids)))
+                log.debug("Found published ids = [{0}] at {1}".format(', '.join(ids), datacite_url_endpoint))
                 return ids
         except Exception as e:
             log.error("get_doi_identifiers FAILED, exception: {0}".format(e))
