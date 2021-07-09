@@ -193,7 +193,7 @@ class DatacitePublicationController(toolkit.BaseController):
             toolkit.abort(400, 'Validation error')
 
         if result.get('success', True):
-            h.flash_notice('DOI metadat updated.')
+            h.flash_notice('DOI metadata updated.')
         else:
             error_message = 'Error updating dataset: \n' + result.get('error', 'Internal Exception, please contact the portal admin.')
             h.flash_error(error_message)

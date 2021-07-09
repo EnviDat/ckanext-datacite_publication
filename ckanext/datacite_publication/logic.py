@@ -464,7 +464,6 @@ def _update_in_datacite(data_dict, context, type='package'):
     # check when possible if the association doi-ckan id is valid:
     log.debug("CHECK DOI in minter")
     is_doi_valid_op = getattr(minter, "is_doi_valid", None)
-    log.debug("is_doi_valid_op = {0}".format(is_doi_valid_op))
     if callable(is_doi_valid_op):
         valid_doi = minter.is_doi_valid(doi, package_id)
         if not valid_doi:
@@ -559,7 +558,6 @@ def _publish_resource(data_dict, context):
         # check when possible if the association doi-ckan id is valid:
         log.debug("CHECK DOI in minter")
         is_doi_valid_op = getattr(minter, "is_doi_valid", None)
-        log.debug("is_doi_valid_op = {0}".format(is_doi_valid_op))
         if callable(is_doi_valid_op):
             valid_doi = minter.is_doi_valid(doi, id, entity_type='resource')
             if not valid_doi:

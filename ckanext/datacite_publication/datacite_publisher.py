@@ -27,6 +27,26 @@ class DatacitePublisher(plugins.SingletonPlugin):
         self.account_password = config.get('datacite_publication.account_password', '')
         self.url_prefix = config.get('datacite_publication.url_prefix', '')
 
+    def get_doi_identifiers(self, doi):
+        datacite_url_endpoint = self.datacite_url + '/' + doi
+        ids = []
+
+        try:
+            r = requests.get(datacite_url_endpoint)
+            if r.status_code == 200:
+                data = json.loads(r.content)
+                alternate_ids = data.get('data').get('attributes').get('alternateIdentifiers')
+                for alt_id in alternate_ids:
+                    if alt_id.get('alternateIdentifierType') == 'URL':
+                        url = alt_id.get('alternateIdentifier')
+                        ids += [url.rsplit('/')[-1]]
+                log.debug("Found published ids = [{0}]".format(', '.join(ids)))
+                return ids
+        except Exception as e:
+            log.error("get_doi_identifiers FAILED, exception: {0}".format(e))
+
+        return []
+
     def publish(self, doi, pkg=None, context={}, *args, **kwargs):
 
         update_doi = kwargs.get('update', False)
@@ -40,6 +60,12 @@ class DatacitePublisher(plugins.SingletonPlugin):
 
         if update_doi:
             log.debug("*** Updating id = {0}, url = {1}".format(package_id, url))
+            # check published data match
+            published_ids = self.get_doi_identifiers(doi)
+            if package_id not in published_ids and pkg.get('name') not in published_ids:
+                return None, 'Dataset id ({0}, {1}) do not match published ids: [{2}]'.format(package_id,
+                                                                                              pkg.get('name'),
+                                                                                              ', '.join(published_ids))
         else:
             log.debug("Publishing id = {0}, url = {1}".format(package_id, url))
 
@@ -136,7 +162,14 @@ class DatacitePublisher(plugins.SingletonPlugin):
         if self.url_prefix:
             url = self.url_prefix + package_id
 
-        log.debug("Publishing id = {0}, url = {1}".format(id, url))
+        if update_doi:
+            log.debug("Updating resource id = {0}, url = {1}".format(id, url))
+            # check published data match
+            published_ids = self.get_doi_identifiers(doi)
+            if id not in published_ids:
+                return None, 'Resource id ({0}) do not match published ids: [{1}]'.format(id, ', '.join(published_ids))
+        else:
+            log.debug("Publishing resource id = {0}, url = {1}".format(id, url))
 
         # get converted package
         metadata_format = 'datacite'
