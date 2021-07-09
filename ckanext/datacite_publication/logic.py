@@ -454,6 +454,22 @@ def _update_in_datacite(data_dict, context, type='package'):
         raise toolkit.NotAuthorized({
             'permissions': ['Not authorized to perform the dataset update to datacite (admin only).']})
 
+    # Get the DOI minter
+    minter_name = config.get('datacite_publication.minter', DEAFULT_MINTER)
+    package_name, class_name = minter_name.rsplit('.', 1)
+    module = importlib.import_module(package_name)
+    minter_class = getattr(module, class_name)
+    minter = minter_class()
+
+    # check when possible if the association doi-ckan id is valid:
+    log.debug("CHECK DOI in minter")
+    is_doi_valid_op = getattr(minter, "is_doi_valid", None)
+    log.debug("is_doi_valid_op = {0}".format(is_doi_valid_op))
+    if callable(is_doi_valid_op):
+        valid_doi = minter.is_doi_valid(doi, package_id)
+        if not valid_doi:
+            return {'success': False, 'error': 'DOI and id do not match to the DOI realisation table in the DB'}
+
     datacite_publisher = DatacitePublisher()
 
     try:
@@ -526,21 +542,30 @@ def _publish_resource(data_dict, context):
 
     if update:
         log.info("updating CUSTOM resource DOI by an Admin {0}/{1}, allowed: {2}".format(custom_prefix, custom_suffix,
-                                                                                         allowed_prefixes))
+                                                                                          allowed_prefixes))
     else:
         log.info("publishing CUSTOM resource DOI by an Admin {0}/{1}, allowed: {2}".format(custom_prefix, custom_suffix,
                                                                                            allowed_prefixes))
 
+    # Get the DOI minter
+    minter_name = config.get('datacite_publication.minter', DEAFULT_MINTER)
+    package_name, class_name = minter_name.rsplit('.', 1)
+    module = importlib.import_module(package_name)
+    minter_class = getattr(module, class_name)
+    minter = minter_class()
+
     if update:
         doi = custom_doi
+        # check when possible if the association doi-ckan id is valid:
+        log.debug("CHECK DOI in minter")
+        is_doi_valid_op = getattr(minter, "is_doi_valid", None)
+        log.debug("is_doi_valid_op = {0}".format(is_doi_valid_op))
+        if callable(is_doi_valid_op):
+            valid_doi = minter.is_doi_valid(doi, id, entity_type='resource')
+            if not valid_doi:
+                return {'success': False, 'error': 'DOI and id do not match to the DOI realisation table in the DB'}
     else:
         # Mint custom DOI
-        minter_name = config.get('datacite_publication.minter', DEAFULT_MINTER)
-        package_name, class_name = minter_name.rsplit('.', 1)
-        module = importlib.import_module(package_name)
-        minter_class = getattr(module, class_name)
-        minter = minter_class()
-
         doi, error = minter.mint(custom_prefix, pkg=resource_dict, user=ckan_user,
                                  suffix=custom_suffix, entity='resource')
         log.debug("minter got doi={0}, error={1}".format(doi, error))

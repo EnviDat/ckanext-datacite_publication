@@ -33,8 +33,8 @@ class DataciteIndexDOI(DatacitePublicationMinter):
             'check_doi doi = {0}, ckan_id = {1}, entity_type = {2}, site_id = "{3}"'.format(doi, ckan_id, entity_type,
                                                                                             self.site_id))
 
-        clause = sqlalchemy.select([doi_realisation.c.prefix,
-                                    doi_realisation.c.suffix]
+        clause = sqlalchemy.select([doi_realisation.c.prefix_id,
+                                    doi_realisation.c.suffix_id]
                                    ).where(doi_realisation.c.site_id == self.site_id
                                            ).where(doi_realisation.c.ckan_entity == entity_type
                                                    ).where(doi_realisation.c.ckan_id == ckan_id)
@@ -45,7 +45,7 @@ class DataciteIndexDOI(DatacitePublicationMinter):
             return False
 
         for row in results:
-            db_prefix = str(row[0][0])
+            db_prefix = str(row[0])
             db_suffix = str(row[1])
             if (prefix == db_prefix) and (suffix == db_suffix):
                 log.debug('Check CKAN ID-DOI OK!! {entity_type}: {prefix}/{suffix}: {ckan_id}'.format(
@@ -178,7 +178,7 @@ class DataciteIndexDOI(DatacitePublicationMinter):
         return str(self)
 
     def __str__(self):
-        return unicode(self).encode('utf-8')
+        return 'DataciteIndexDOI({0}): \'{1}\' '.format(self.site_id, self.con)
 
     def __unicode__(self):
         return u'DataciteIndexDOI({0}): \'{1}\' '.format(self.site_id, self.con)
