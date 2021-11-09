@@ -62,7 +62,7 @@ class DatacitePublisher(plugins.SingletonPlugin):
             log.debug("*** Updating id = {0}, url = {1}".format(package_id, url))
             # check published data match
             published_ids = self.get_doi_identifiers(doi)
-            if published_ids and package_id not in published_ids and pkg.get('name') not in published_ids:
+            if published_ids and package_id not in published_ids: # and pkg.get('name') not in published_ids:
                 return None, 'Dataset id ({0}, {1}) do not match published ids: [{2}]'.format(package_id,
                                                                                               pkg.get('name'),
                                                                                               ', '.join(published_ids))

@@ -433,7 +433,7 @@ def _update_in_datacite(data_dict, context, type='package'):
     if state != 'published':
         raise toolkit.ValidationError({'publication_state': 'dataset needs to be in state "published" (in datacite)'})
 
-    # DOI has to be already present
+    # DOI has to be already present and with valid prefix
     doi = dataset_dict.get('doi', '')
     default_prefix = config.get('datacite_publication.doi_prefix', '10.xxxxx')
     allowed_prefixes = config.get('datacite_publication.custom_prefix', '').split(' ') + [default_prefix]
