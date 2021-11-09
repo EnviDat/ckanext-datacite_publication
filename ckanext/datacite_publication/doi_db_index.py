@@ -1,4 +1,6 @@
 import sqlalchemy
+from sqlalchemy import and_
+
 import sys
 import traceback
 import json
@@ -171,6 +173,86 @@ class DataciteIndexDOI(DatacitePublicationMinter):
             return doi, None
 
         error = "Could not retrieve inserted DOI"
+        log.error(error)
+        return None, error
+
+    def update(self, prefix, pkg=None, *args, **kwargs):
+        # metadata
+        pkg_metadata = json.dumps(pkg)
+
+        # user
+        ckan_user = kwargs.get('user', 'undefined')
+        suffix = kwargs.get('suffix', None)
+        entity_type = kwargs.get('entity', 'package')
+
+        return self.update_doi(ckan_id=pkg.get('id', "None"), ckan_user=ckan_user, ckan_name=pkg.get('name', "None"),
+                             prefix=prefix, suffix=suffix, metadata=pkg_metadata, entity_type=entity_type)
+
+    def update_doi(self, ckan_id, ckan_user, ckan_name, prefix=None, suffix=None, metadata="{}", entity_type='package'):
+
+        doi = prefix + "/" + suffix
+
+        # check database
+        doi_realisation = self.meta.tables['doi_realisation']
+
+        log.debug(
+            "update_doi doi = {0}/{1}, ckan_id = {2}, ckan_user= {3}, " +
+            "entity_type = {4}, site_id = '{5}'".format(prefix, suffix, ckan_id, ckan_user, entity_type, self.site_id))
+
+        # check if already exists
+        if not self.is_doi_existing(prefix, suffix):
+            error = "ERROR updating DOI: Does not exist"
+            log.error(error)
+            return None, error
+
+        # check if ckan_id registered to that doi
+        has_doi, existing_doi = self.is_dataset_published(ckan_id, entity_type)
+        if not has_doi:
+            error = "ERROR updating DOI: {0} ({1}) not yet published".format(entity_type, ckan_id)
+            return None, error
+        elif existing_doi != doi:
+            error = "ERROR updating DOI: {0} ({1}) published with different DOI {2}".format(entity_type,
+                                                                                            ckan_id,
+                                                                                            existing_doi)
+            return None, error
+
+            # update row
+        try:
+            mint_update = doi_realisation.update()\
+                .where((and_(doi_realisation.c.ckan_id == ckan_id,
+                       doi_realisation.c.prefix_id == prefix,
+                       doi_realisation.c.suffix_id == suffix)))\
+                .values(ckan_name=ckan_name, ckan_user=ckan_user, metadata=metadata)
+
+            # log.debug(mint_update.compile().params)
+            result = self.con.execute(mint_update)
+
+            log.debug("Update result: rowcount={0}".format(result.rowcount))
+
+            if result.rowcount != 1:
+                raise ValueError("DOI updated modified more than one row, total = {0}".format(result.rowcount))
+
+            #inserted_primary_key = result.inserted_primary_key[0]
+
+            clause = sqlalchemy.select([doi_realisation.c.prefix_id,
+                                        doi_realisation.c.suffix_id]
+                                       ).where(doi_realisation.c.ckan_id == ckan_id)
+
+            results = self.con.execute(clause).fetchall()
+        except Exception as e:
+            error = "Could not update DOI, exception: " + str(e)
+            traceback.print_exc()
+            log.error(error)
+            return None, error
+
+        log.debug(str(results))
+
+        for result in results:
+            doi = result[0] + '/' + result[1]
+            log.debug("UPDATED DOI = " + doi)
+            return doi, None
+
+        error = "Could not retrieve updated DOI"
         log.error(error)
         return None, error
 

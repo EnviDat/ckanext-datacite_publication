@@ -438,6 +438,7 @@ def _update_in_datacite(data_dict, context, type='package'):
     default_prefix = config.get('datacite_publication.doi_prefix', '10.xxxxx')
     allowed_prefixes = config.get('datacite_publication.custom_prefix', '').split(' ') + [default_prefix]
     doi_prefix = doi.split('/')[0].strip()
+    doi_suffix = doi.split('/')[1].strip()
 
     if (not doi) or (len(doi) <= 0) or (doi_prefix not in allowed_prefixes):
         raise toolkit.ValidationError(
@@ -469,6 +470,25 @@ def _update_in_datacite(data_dict, context, type='package'):
         if not valid_doi:
             return {'success': False, 'error': 'DOI and id do not match to the DOI realisation table in the DB'}
 
+    # update in the minter database if necessary
+    # get user
+    ckan_user = _get_username_from_context(context)
+
+    try:
+        doi, error = minter.update(doi_prefix, pkg=dataset_dict, user=ckan_user, suffix=doi_suffix)
+        log.debug("minter update got doi={0}, error={1}".format(doi, error))
+    except Exception as e:
+        log.error("exception updating package {0} in DOI minter, error {1}".format(package_id, traceback.format_exc()))
+        return {'success': False, 'error': 'Exception when updating in DOI minter: {0}'.format(e)}
+    except:
+        log.error("error updating package {0} in DOI minter, error {1}".format(package_id, sys.exc_info()[0]))
+        return {'success': False, 'error': 'Unknown error when updating in DOI minter: {0}'.format(sys.exc_info()[0])}
+
+    if error:
+        log.error("error updating package {0} in DOI minter, error {1}".format(package_id, error))
+        return {'success': False, 'error': error}
+
+    # publish in datacite
     datacite_publisher = DatacitePublisher()
 
     try:

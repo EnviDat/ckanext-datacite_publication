@@ -5,12 +5,18 @@ import uuid
 import logging
 log = logging.getLogger(__name__)
 
+
 class DatacitePublicationMinter(plugins.SingletonPlugin):
 
-    def mint(self, prefix, pkg = None, *args, **kwargs):
+    def mint(self, prefix, pkg=None, *args, **kwargs):
         error = None
         doi = prefix + '/' + str(uuid.uuid4())
-        return(doi, error)
+        return (doi, error)
+
+    def update(self, prefix, suffix, pkg=None, *args, **kwargs):
+        error = None
+        doi = prefix + '/' + suffix
+        return (doi, error)
 
     def __repr__(self):
         return str(self)
