@@ -1,1 +1,2 @@
--e git://github.com/eawag-rdm/doigenerator.git#egg=doigenerator
+git+https://github.com/eawag-rdm/doigenerator.git@master
+ckantoolkit==0.0.4
