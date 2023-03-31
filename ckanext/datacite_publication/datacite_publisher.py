@@ -68,7 +68,7 @@ class DatacitePublisher(plugins.SingletonPlugin):
                                                                                               pkg.get('name'),
                                                                                               ', '.join(published_ids))
         else:
-            log.debug("Publishing id = {0}, url = {1}".format(package_id, url))
+            log.debug(f"Publishing id = {package_id}, url = {url}")
 
         # get converted package
         metadata_format = 'datacite'
@@ -80,18 +80,20 @@ class DatacitePublisher(plugins.SingletonPlugin):
                 {'id': package_id, 'format': metadata_format}
             )
         except toolkit.ObjectNotFound:
+            log.debug("Failed exporting package metadata, dataset not found")
             return None, 'Dataset not found'
 
         xml = converted_package.replace('\n', '').replace('\t', '')
+        log.debug(f"Package XML generated {xml}")
 
         # Validate        
         try:
             converted_record = XMLRecord.from_record(
                 Record(MetadataFormats().get_metadata_formats(metadata_format)[0], xml))
             validation_result = converted_record.validate()
-            log.debug("Validation result: {0}".format(validation_result))
+            log.debug(f"Validation successful: {validation_result}")
         except Exception as e:
-            log.error("Converted Validation FAILED, exception: {0}".format(e))
+            log.error(f"Converted Validation FAILED, exception: {e}")
             traceback.print_exc()
             validation_result = False
 
@@ -123,29 +125,30 @@ class DatacitePublisher(plugins.SingletonPlugin):
         args = {'data': data}
 
         args_json = json.dumps(args)
-        # log.debug(args_json)
+        log.debug(f"Args JSON for datacite {args_json}")
 
         datacite_url_endpoint = self.datacite_url
         if update_doi:
             datacite_url_endpoint = self.datacite_url + '/' + doi
-        log.debug(" REST request send to URL: {0}".format(datacite_url_endpoint))
+        log.debug(f"REST request send to URL: {datacite_url_endpoint}")
 
         if update_doi:
             r = requests.put(datacite_url_endpoint, headers=headers, auth=auth, data=args_json)
         else:
             r = requests.post(datacite_url_endpoint, headers=headers, auth=auth, data=args_json)
 
-        # print(r.status_code)
-        # print(r.json())
-
         if r.status_code == 201 or r.status_code == 200:
             published_doi = r.json().get('data').get('id')
             return published_doi, None
         else:
             if update_doi:
-                return None, 'Error updating to DataCite: HTTP Code: {0}, error: {1}'.format(r.status_code, r.json())
+                msg = f"Error updating DataCite: HTTP Code: {r.status_code}, error: {r.json()}"
+                log.debug(msg)
+                return None, msg
             else:
-                return None, 'Error publishing to DataCite: HTTP Code: {0}, error: {1}'.format(r.status_code, r.json())
+                msg = f"Error publishing to DataCite: HTTP Code: {r.status_code}, error: {r.json()}"
+                log.debug(msg)
+                return None, msg
 
     def publish_resource(self, doi, resource=None, package={}, context={}, *args, **kwargs):
 
