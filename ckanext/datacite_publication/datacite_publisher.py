@@ -111,7 +111,7 @@ class DatacitePublisher(plugins.SingletonPlugin):
         auth = HTTPBasicAuth(self.account_name, self.account_password)
 
         data = collections.OrderedDict()
-        data['id'] = doi
+        data['id'] = doi.strip()
         data['type'] = 'dois'
         data['attributes'] = collections.OrderedDict()
         # TODO check for update if this state is correct
