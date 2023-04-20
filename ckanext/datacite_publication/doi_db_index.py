@@ -115,6 +115,7 @@ class DataciteIndexDOI(DatacitePublicationMinter):
 
     def mint_doi(self, ckan_id, ckan_user, ckan_name, prefix=None, suffix=None, metadata="{}", entity_type='package'):
 
+        log.debug(f"Accessing table doi_realisation from SQLAlchemy MetaData.tables: {self.meta.tables}")
         doi_realisation = self.meta.tables['doi_realisation']
 
         log.debug(
