@@ -1,46 +1,17 @@
-.. You should enable this project on travis-ci.org and coveralls.io to make
-   these badges work. The necessary Travis and Coverage config files have been
-   generated for you.
-
-.. image:: https://travis-ci.org/EnviDat/ckanext-datacite_publication.svg?branch=master
-    :target: https://travis-ci.org/EnviDat/ckanext-datacite_publication
-
-.. image:: https://coveralls.io/repos/EnviDat/ckanext-datacite_publication/badge.svg
-  :target: https://coveralls.io/r/EnviDat/ckanext-datacite_publication
-
-.. image:: https://pypip.in/download/ckanext-datacite_publication/badge.svg
-    :target: https://pypi.python.org/pypi//ckanext-datacite_publication/
-    :alt: Downloads
-
-.. image:: https://pypip.in/version/ckanext-datacite_publication/badge.svg
-    :target: https://pypi.python.org/pypi/ckanext-datacite_publication/
-    :alt: Latest Version
-
-.. image:: https://pypip.in/py_versions/ckanext-datacite_publication/badge.svg
-    :target: https://pypi.python.org/pypi/ckanext-datacite_publication/
-    :alt: Supported Python versions
-
-.. image:: https://pypip.in/status/ckanext-datacite_publication/badge.svg
-    :target: https://pypi.python.org/pypi/ckanext-datacite_publication/
-    :alt: Development Status
-
-.. image:: https://pypip.in/license/ckanext-datacite_publication/badge.svg
-    :target: https://pypi.python.org/pypi/ckanext-datacite_publication/
-    :alt: License
-
 =============
 ckanext-datacite_publication
 =============
 
-.. CKAN extension to generate DOIs and publish datasets in DataCite.
+CKAN extension to generate DOIs and publish datasets in DataCite.
 
 
-------------
-Requirements
-------------
+--------
+Obsolete
+--------
 
-For example, you might want to mention here which versions of CKAN this
-extension works with.
+This extension is no longer maintained.
+
+EnviDat CKAN packages are now converted to various metadata formats using the envidat-converters-api microservice. 
 
 
 ------------
